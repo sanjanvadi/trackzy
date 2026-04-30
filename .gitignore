@@ -1,0 +1,9 @@
+firebaseEmulator
+.vscode
+.DS_Store
+
+backend/__pycache__
+backend/.env
+backend/serviceAccount.json
+backend/*/__pycache__
+
