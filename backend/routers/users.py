@@ -20,8 +20,11 @@ async def register_user(
     Creates user + 2 default ledgers (Personal, Business) on first call.
     UID always comes from the verified Firebase token — never the request body.
     """
-    user = await create_or_update_user(db, uid, payload.model_dump())
-    return user
+    try:
+        user = await create_or_update_user(db, uid, payload.model_dump())
+        return user
+    except:
+        raise HTTPException(status_code=404, detail="User Already exists.")
 
 
 @router.get("/me", response_model=UserRead)

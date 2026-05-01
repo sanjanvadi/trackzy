@@ -20,15 +20,15 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "add_expense",
-            "description": "Add a new expense. Triggered by: 'I spent', 'add', 'I bought', 'paid for'.",
+            "description": "Create expense",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "amount":      {"type": "number",  "description": "Expense amount in user's currency."},
-                    "category":    {"type": "string",  "enum": ["food","transport","shopping","health","entertainment","bills","other"]},
-                    "note":        {"type": "string",  "description": "Short description, max 5 words."},
-                    "date":        {"type": "string",  "description": "YYYY-MM-DD. Use today if not specified."},
-                    "ledger_name": {"type": "string",  "description": "Ledger name the user mentioned."},
+                    "amount": {"type": "number"},
+                    "category": {"type": "string", "enum": ["food","transport","shopping","health","entertainment","bills","other","all"]},
+                    "note": {"type": "string"},
+                    "date": {"type": "string"},
+                    "ledger_name": {"type": "string"},
                 },
                 "required": ["amount", "category", "date"],
             },
@@ -38,18 +38,17 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "edit_expense",
-            "description": "Edit an expense. Triggered by: 'change', 'update', 'correct', 'fix'.",
+            "description": "Update expense",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "expense_id":  {"type": "string",  "description": "Leave null — backend resolves."},
+                    "expense_id": {"type": "string"},
+                    "amount": {"type": "number"},
+                    "category": {"type": "string", "enum": ["food","transport","shopping","health","entertainment","bills","other","all"]},
+                    "note": {"type": "string"},
+                    "date": {"type": "string"},
                     "ledger_name": {"type": "string"},
-                    "amount":      {"type": "number"},
-                    "category":    {"type": "string",  "enum": ["food","transport","shopping","health","entertainment","bills","other"]},
-                    "note":        {"type": "string"},
-                    "date":        {"type": "string",  "description": "YYYY-MM-DD."},
                 },
-                "required": [],
             },
         },
     },
@@ -57,16 +56,15 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "delete_expense",
-            "description": "Delete an expense. Triggered by: 'remove', 'delete', 'undo'.",
+            "description": "Delete expense",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "expense_id":  {"type": "string",  "description": "Leave null — backend resolves."},
+                    "expense_id": {"type": "string"},
+                    "note": {"type": "string"},
+                    "date": {"type": "string"},
                     "ledger_name": {"type": "string"},
-                    "note":        {"type": "string"},
-                    "date":        {"type": "string"},
                 },
-                "required": [],
             },
         },
     },
@@ -74,12 +72,12 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "query_expenses",
-            "description": "Summarise expenses. Triggered by: 'how much did I spend', 'total', 'summary'.",
+            "description": "Get summary",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "period":      {"type": "string",  "enum": ["today","this_week","this_month","last_month","all"]},
-                    "category":    {"type": "string",  "enum": ["food","transport","shopping","health","entertainment","bills","other","all"]},
+                    "period": {"type": "string", "enum": ["today","this_week","this_month","last_month","all"]},
+                    "category": {"type": "string", "enum": ["food","transport","shopping","health","entertainment","bills","other","all"]},
                     "ledger_name": {"type": "string"},
                 },
                 "required": ["period"],
@@ -88,45 +86,82 @@ TOOLS = [
     },
 ]
 
+
 # ── Cached prompt builder ──────────────────────────────────────────────────────
 # lru_cache memoises by (currency, ledger_names_tuple) — same combo returns
 # the cached string instantly without rebuilding. Rebuilds only when either changes.
 
-STATIC_RULES = """
-Handle expense actions only — add, edit, delete, or query. Cannot create ledgers.
-Rules:
-- Always call exactly ONE tool.
-- Resolve relative dates (yesterday, last Friday) to YYYY-MM-DD.
+STATIC_RULES= """
+You are an expense assistant.
+
+Classify the user intent and call exactly ONE tool. Cannot create ledgers.
+
+Intent rules:
+- New spending (e.g., "spent", "paid", "bought") → add_expense
+- Corrections (e.g., "change", "update", "instead", "make it") → edit_expense
+- Deletions (e.g., "delete", "remove", "undo") → delete_expense
+- Questions (e.g., "how much", "total", "summary") → query_expenses
+
+Strict rules:
+- If the user describes a new expense, ALWAYS use add_expense.
+- Do NOT guess missing fields — leave them null.
+- Always return valid tool arguments.
 - No ledger mentioned or unknown → use default ledger.
-- Always include ledger_name in every tool call.
-- Call the tool even if fields are missing — leave them null.
-- Keep notes under 5 words.
+- Use YYYY-MM-DD for dates. Resolve relative dates (yesterday, last Friday) to YYYY-MM-DD.
+- Use today's date if none provided.
+- Keep notes short (max 5 words).
+
+Examples:
+"I spent 20 on food" → add_expense
+"coffee 5 dollars" → add_expense
+"make that 10 instead" → edit_expense
+"delete last expense" → delete_expense
+"how much did I spend today" → query_expenses
+
 """
 
-@lru_cache(maxsize=256)
-def _build_cached_prompt(currency: str, ledger_names_tuple: tuple[str, ...]) -> str:
-    ledger_list    = ", ".join(ledger_names_tuple)
-    default_ledger = ledger_names_tuple[0] if ledger_names_tuple else "Personal"
-    return (
-        f"You are an expense tracking assistant.\n"
-        f"User currency: {currency}.\n"
-        f"User ledgers: {ledger_list}.\n"
-        f"Default ledger: {default_ledger}.\n"
-        f"{STATIC_RULES}"
-    )
+# STATIC_RULES = """
+# Handle expense actions only — add, edit, delete, or query. Cannot create ledgers.
+# Rules:
+# - Always call exactly ONE tool.
+# - Resolve relative dates (yesterday, last Friday) to YYYY-MM-DD.
+# - No ledger mentioned or unknown → use default ledger.
+# - Always include ledger_name in every tool call.
+# - Call the tool even if fields are missing — leave them null.
+# - Keep notes under 5 words.
+# """
+# 
+# @lru_cache(maxsize=256)
+# def _build_cached_prompt(currency: str, ledger_names_tuple: tuple[str, ...]) -> str:
+#     ledger_list    = ", ".join(ledger_names_tuple)
+#     default_ledger = ledger_names_tuple[0] if ledger_names_tuple else "Personal"
+#     return (
+#         f"You are an expense tracking assistant.\n"
+#         f"User currency: {currency}.\n"
+#         f"User ledgers: {ledger_list}.\n"
+#         f"Default ledger: {default_ledger}.\n"
+#         f"{STATIC_RULES}"
+#     )
 
 def parse_voice_intent(
     transcript:   str,
+    default_ledger: str,
     currency:     str = "USD",
     ledger_names: list[str] | None = None,
 ) -> IntentResponse:
     transcript    = transcript.strip()[:MAX_TRANSCRIPT_CHARS]
-    ledger_tuple  = tuple(ledger_names or ["Personal"])
+    ledger_tuple  = tuple(ledger_names)
 
     # Date prepended per-request (cannot cache — changes every day)
+    # system_prompt = (
+    #     f"Today's date is {date.today().isoformat()}.\n"
+    #     + _build_cached_prompt(currency, ledger_tuple)
+    # )
+    
     system_prompt = (
         f"Today's date is {date.today().isoformat()}.\n"
-        + _build_cached_prompt(currency, ledger_tuple)
+        +f"default_ledger = {default_ledger}.\n"
+        +f"ledgers = {ledger_tuple}."
     )
 
     logger.info(f"Parsing: '{transcript[:80]}'")
@@ -135,6 +170,7 @@ def parse_voice_intent(
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[
+            {"role": "system", "content": STATIC_RULES},
             {"role": "system", "content": system_prompt},
             {"role": "user",   "content": transcript},
         ],

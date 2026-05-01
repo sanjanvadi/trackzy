@@ -1,3 +1,5 @@
+import json
+
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import date as dt
@@ -46,6 +48,12 @@ async def parse_voice(
     currency     = user.currency
     ledgers      = await get_ledgers(db, uid)
     ledger_names = [l.name for l in ledgers]
+    default_ledger = next(
+        (l.name for l in ledgers if l.is_default),
+        "Personal"
+    )
+
+
 
     # ── 2. Transcribe audio via Groq Whisper ──────────────────────────────────
     transcript = await transcribe_audio(audio)
@@ -58,6 +66,7 @@ async def parse_voice(
     try:
         intent_result = parse_voice_intent(
             transcript,
+            default_ledger=default_ledger,
             currency=currency,
             ledger_names=ledger_names,
         )
