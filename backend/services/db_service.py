@@ -283,37 +283,75 @@ async def delete_expense_db(
         raise HTTPException(status_code=500, detail="Could Not delete expense")
 
 async def find_matching_expenses(
-    db:        AsyncSession,
-    uid:       str,
+    db: AsyncSession,
+    uid: str,
     ledger_id: str,
-    args:      ExpenseToolInput,
+    args: ExpenseToolInput,
 ) -> list[Expense]:
     """
-    Fuzzy lookup by date + category in SQL, then note keyword in Python.
-    Used by voice edit/delete when no expense_id is confirmed yet. 
+    Smart fuzzy matching:
+    - Broad SQL filter
+    - Score-based ranking
     """
     try:
         await get_ledger(db, uid, ledger_id)
 
-        query = select(Expense).where(Expense.ledger_id == ledger_id)
+        # 1. Broad query
+        query = (
+            select(Expense)
+            .where(Expense.ledger_id == ledger_id)
+            .order_by(Expense.date.desc())
+            .limit(100)
+        )
 
-        if args.date:
-            query = query.where(Expense.date == args.date)
-        if args.category:
-            query = query.where(Expense.category == args.category)
-
-        query = query.order_by(Expense.date.desc()).limit(50)
         result = await db.execute(query)
         expenses = result.scalars().all()
 
-        # Note keyword filter — SQL has no fuzzy text search, done in Python
-        if args.note:
-            keyword  = args.note.lower()
-            expenses = [e for e in expenses if keyword in (e.note or "").lower()]
+        if not expenses:
+            return []
 
-        return expenses
-    except:
-        raise HTTPException(status_code=500, detail="Could Not lookup expense")
+        # 2. Score each expense
+        scored = []
+
+        for e in expenses:
+            score = 0
+
+            # Amount (strongest signal)
+            if args.amount is not None:
+                if abs(e.amount - args.amount) < 0.01:
+                    score += 5
+
+            # Date
+            if args.date:
+                if e.date == args.date:
+                    score += 3
+
+            # Category
+            if args.category:
+                if e.category == args.category:
+                    score += 2
+
+            # Note keyword
+            if args.note:
+                keyword = args.note.lower()
+                if keyword in (e.note or "").lower():
+                    score += 2
+
+            # Only consider meaningful matches
+            if score > 0:
+                scored.append((score, e))
+
+        # 3. Sort by best match
+        scored.sort(key=lambda x: x[0], reverse=True)
+
+        # 4. Return top matches only
+        return [e for _, e in scored[:3]]
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not lookup expense: {str(e)}"
+        )
  
 # ── Summary / reporting ────────────────────────────────────────────────────────
 
