@@ -108,10 +108,24 @@ async def parse_voice(
 
     # ── EDIT ──────────────────────────────────────────────────────────────────
     elif intent == "edit_expense":
+        ALLOWED_UPDATE_FIELDS = {"amount", "category", "note", "date"}
+
         update_fields = {
-            k: v for k, v in args.model_dump().items()
-            if v is not None and k not in ("expense_id", "period", "ledger_name")
+            k: v
+            for k, v in args.model_dump().items()
+            if k in ALLOWED_UPDATE_FIELDS and v is not None
         }
+
+        if "amount" in update_fields and update_fields["amount"] <= 0:
+            del update_fields["amount"]
+
+        if not update_fields:
+            return VoiceParseResponse(
+                intent=intent,
+                message="Nothing to update.",
+                tool_input=args,
+            )
+
 
         # Second pass — frontend confirmed exact expense_id after seeing candidates
         if args.expense_id:

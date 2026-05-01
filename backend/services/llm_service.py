@@ -42,7 +42,6 @@ TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "expense_id": {"type": "string"},
                     "amount": {"type": "number"},
                     "category": {"type": "string", "enum": ["food","transport","shopping","health","entertainment","bills","other","all"]},
                     "note": {"type": "string"},
@@ -60,7 +59,6 @@ TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "expense_id": {"type": "string"},
                     "note": {"type": "string"},
                     "date": {"type": "string"},
                     "ledger_name": {"type": "string"},
@@ -117,6 +115,19 @@ Examples:
 "make that 10 instead" → edit_expense
 "delete last expense" → delete_expense
 "how much did I spend today" → query_expenses
+
+Example:
+"change the category to transport for the 2000 rupees flight expense"
+
+Tool:
+edit_expense({
+  "amount": 2000,
+  "category": "transport",
+  "note": "flight",
+  "date": null,
+  "ledger_name": "Personal"
+})
+
 
 """
 
