@@ -7,3 +7,8 @@ backend/.env
 backend/serviceAccount.json
 backend/*/__pycache__
 
+testing
+audio
+audioTest
+index.txt
+indexTest.txt

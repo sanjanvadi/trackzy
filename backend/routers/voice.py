@@ -1,5 +1,3 @@
-import json
-
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import date as dt
@@ -76,6 +74,7 @@ async def parse_voice(
 
     intent = intent_result.intent
     args   = intent_result.tool_input
+    args.amount = float(args.amount)
 
     # ── 4. Resolve ledger server-side — never trust client/LLM ID ─────────────
     ledger_id = await resolve_ledger_id(db, uid, args)
@@ -86,7 +85,7 @@ async def parse_voice(
 
     # ── ADD ───────────────────────────────────────────────────────────────────
     if intent == "add_expense":
-        if args.amount is None:
+        if args.amount is None or args.amount<=0:
             raise HTTPException(status_code=422, detail="Could not extract amount from speech.")
 
         payload = ExpenseCreate(

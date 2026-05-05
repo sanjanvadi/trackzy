@@ -1,6 +1,6 @@
 import json
 from datetime import date
-from functools import lru_cache
+# from functools import lru_cache
 from typing import Any
 from groq import Groq
 
@@ -24,7 +24,7 @@ TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "amount": {"type": "number"},
+                    "amount": {"type": ["number","string"]},
                     "category": {"type": "string", "enum": ["food","transport","shopping","health","entertainment","bills","other","all"]},
                     "note": {"type": "string"},
                     "date": {"type": "string"},
@@ -42,7 +42,7 @@ TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "amount": {"type": "number"},
+                    "amount": {"type": ["number","string"]},
                     "category": {"type": "string", "enum": ["food","transport","shopping","health","entertainment","bills","other","all"]},
                     "note": {"type": "string"},
                     "date": {"type": "string"},
@@ -108,6 +108,10 @@ Strict rules:
 - Use YYYY-MM-DD for dates. Resolve relative dates (yesterday, last Friday) to YYYY-MM-DD.
 - Use today's date if none provided.
 - Keep notes short (max 5 words).
+- OMIT fields entirely if unknown.
+- DO NOT include fields with null, empty, or placeholder values.
+- Only include fields that are explicitly present in the user's request.
+
 
 Examples:
 "I spent 20 on food" → add_expense
@@ -179,7 +183,7 @@ def parse_voice_intent(
     logger.info(f"Parsing: '{system_prompt}'")
 
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="meta-llama/llama-4-scout-17b-16e-instruct",
         messages=[
             {"role": "system", "content": STATIC_RULES},
             {"role": "system", "content": system_prompt},
