@@ -1,5 +1,5 @@
 import json
-from datetime import date
+from datetime import date as dt
 # from functools import lru_cache
 from typing import Any
 from groq import Groq
@@ -25,12 +25,13 @@ TOOLS = [
                 "type": "object",
                 "properties": {
                     "amount": {"type": ["number","string"]},
-                    "category": {"type": "string", "enum": ["food","transport","shopping","health","entertainment","bills","other","all"]},
+                    "category": {"type": "string", "enum": ["food","transport","shopping","health","entertainment","bills","other"]},
                     "note": {"type": "string"},
                     "date": {"type": "string"},
                     "ledger_name": {"type": "string"},
                 },
-                "required": ["amount", "category", "date"],
+                "required": ["amount", "category"],
+                "additionalProperties": False,
             },
         },
     },
@@ -48,6 +49,8 @@ TOOLS = [
                     "date": {"type": "string"},
                     "ledger_name": {"type": "string"},
                 },
+                "required": [],
+                "additionalProperties": False
             },
         },
     },
@@ -63,6 +66,8 @@ TOOLS = [
                     "date": {"type": "string"},
                     "ledger_name": {"type": "string"},
                 },
+                "required": [],
+                "additionalProperties": False
             },
         },
     },
@@ -79,15 +84,12 @@ TOOLS = [
                     "ledger_name": {"type": "string"},
                 },
                 "required": ["period"],
+                "additionalProperties": False
             },
         },
     },
 ]
 
-
-# ── Cached prompt builder ──────────────────────────────────────────────────────
-# lru_cache memoises by (currency, ledger_names_tuple) — same combo returns
-# the cached string instantly without rebuilding. Rebuilds only when either changes.
 
 STATIC_RULES= """
 You are an expense assistant.
@@ -102,16 +104,17 @@ Intent rules:
 
 Strict rules:
 - If the user describes a new expense, ALWAYS use add_expense.
-- Do NOT guess missing fields — leave them null.
+- Infer category from common keywords:
+  coffee, food, restaurant → food
+  uber, taxi, flight → transport
+  groceries, fruits, vegetables → grocery
 - Always return valid tool arguments.
 - No ledger mentioned or unknown → use default ledger.
 - Use YYYY-MM-DD for dates. Resolve relative dates (yesterday, last Friday) to YYYY-MM-DD.
-- Use today's date if none provided.
 - Keep notes short (max 5 words).
-- OMIT fields entirely if unknown.
-- DO NOT include fields with null, empty, or placeholder values.
-- Only include fields that are explicitly present in the user's request.
-
+- Only include fields that are explicitly mentioned or strongly implied.
+- If a field is unknown, OMIT it completely.
+- NEVER return null values.
 
 Examples:
 "I spent 20 on food" → add_expense
@@ -128,35 +131,11 @@ edit_expense({
   "amount": 2000,
   "category": "transport",
   "note": "flight",
-  "date": null,
   "ledger_name": "Personal"
 })
 
 
 """
-
-# STATIC_RULES = """
-# Handle expense actions only — add, edit, delete, or query. Cannot create ledgers.
-# Rules:
-# - Always call exactly ONE tool.
-# - Resolve relative dates (yesterday, last Friday) to YYYY-MM-DD.
-# - No ledger mentioned or unknown → use default ledger.
-# - Always include ledger_name in every tool call.
-# - Call the tool even if fields are missing — leave them null.
-# - Keep notes under 5 words.
-# """
-# 
-# @lru_cache(maxsize=256)
-# def _build_cached_prompt(currency: str, ledger_names_tuple: tuple[str, ...]) -> str:
-#     ledger_list    = ", ".join(ledger_names_tuple)
-#     default_ledger = ledger_names_tuple[0] if ledger_names_tuple else "Personal"
-#     return (
-#         f"You are an expense tracking assistant.\n"
-#         f"User currency: {currency}.\n"
-#         f"User ledgers: {ledger_list}.\n"
-#         f"Default ledger: {default_ledger}.\n"
-#         f"{STATIC_RULES}"
-#     )
 
 def parse_voice_intent(
     transcript:   str,
@@ -165,16 +144,10 @@ def parse_voice_intent(
     ledger_names: list[str] | None = None,
 ) -> IntentResponse:
     transcript    = transcript.strip()[:MAX_TRANSCRIPT_CHARS]
-    ledger_tuple  = tuple(ledger_names)
-
-    # Date prepended per-request (cannot cache — changes every day)
-    # system_prompt = (
-    #     f"Today's date is {date.today().isoformat()}.\n"
-    #     + _build_cached_prompt(currency, ledger_tuple)
-    # )
+    ledger_tuple  = tuple(ledger_names or [])
     
     system_prompt = (
-        f"Today's date is {date.today().isoformat()}.\n"
+        f"Today's date is {dt.today().isoformat()}.\n"
         +f"default_ledger = {default_ledger}.\n"
         +f"ledgers = {ledger_tuple}."
     )
@@ -202,13 +175,19 @@ def parse_voice_intent(
 
     tool_call = tool_calls[0]
     intent    = tool_call.function.name
-    raw_args: dict[str, Any] = json.loads(tool_call.function.arguments)
-    raw_args.pop("ledger_id", None)   # strip if hallucinated
+    raw_args = json.loads(tool_call.function.arguments)
+
+    if intent == "add_expense":
+        raw_args["date"] = raw_args["date"] or dt.today()
+
+    clean_args: dict[str, Any] = {k: v for k, v in raw_args.items() if v is not None}
+
+    clean_args.pop("ledger_id", None)   # strip if hallucinated
 
     logger.info(f"Intent: {intent} | args: {raw_args}")
 
     return IntentResponse(
         intent=intent,
-        tool_input=ExpenseToolInput(**raw_args),
+        tool_input=ExpenseMutationInput(**clean_args),
         raw_transcript=transcript,
     )

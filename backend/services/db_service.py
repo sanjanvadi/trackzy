@@ -286,7 +286,7 @@ async def find_matching_expenses(
     db: AsyncSession,
     uid: str,
     ledger_id: str,
-    args: ExpenseToolInput,
+    args: ExpenseMutationInput,
 ) -> list[Expense]:
     """
     Smart fuzzy matching:
@@ -309,6 +309,10 @@ async def find_matching_expenses(
 
         if not expenses:
             return []
+        
+        if args.note:
+            keyword = args.note.lower()
+            expenses = [e for e in expenses if keyword in (e.note or "").lower()]
 
         # 2. Score each expense
         scored = []
@@ -335,10 +339,10 @@ async def find_matching_expenses(
             if args.note:
                 keyword = args.note.lower()
                 if keyword in (e.note or "").lower():
-                    score += 2
+                    score += 4
 
             # Only consider meaningful matches
-            if score > 0:
+            if score >= 2:
                 scored.append((score, e))
 
         # 3. Sort by best match
