@@ -1,7 +1,10 @@
 from datetime import date as Date, timedelta
 from sqlmodel import select
+from pgvector.sqlalchemy import Vector
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
+from sentence_transformers import SentenceTransformer
 
 from models.db_models import User, Ledger, Expense, ExpenseCreate, ExpenseUpdate
 from models.schemas import ExpenseToolInput, CategoryBreakdown, ExpenseSummary
@@ -13,6 +16,13 @@ DEFAULT_LEDGERS = [
     {"name": "Personal", "icon": "home",      "is_default": True},
     {"name": "Business", "icon": "briefcase", "is_default": False},
 ]
+
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
+def get_embedding(text: str) -> list[float]:
+    if not text:
+        return model.encode("empty").tolist()
+    return model.encode(text, normalize_embeddings=True).tolist()
 
 # ── Users ──────────────────────────────────────────────────────────────────────
 
@@ -239,7 +249,17 @@ async def create_expense_db(
     data:      ExpenseCreate,
 ) -> Expense:
     try:
-        expense = Expense(ledger_id=ledger_id, **data.model_dump())
+        data_dict = data.model_dump()
+
+        note = data_dict.get("note")
+        embedding = get_embedding(note) if note else None
+
+        expense = Expense(
+            ledger_id=ledger_id,
+            **data_dict,
+            embedding=embedding
+        )
+
         db.add(expense)
         await db.commit()
         await db.refresh(expense)
@@ -261,6 +281,11 @@ async def update_expense_db(
         for k, v in data.items():
             if v is not None and hasattr(expense, k):
                 setattr(expense, k, v)
+
+        # recompute embedding if note updated
+        if "note" in data and data["note"]:
+            expense.embedding = get_embedding(data["note"])
+
         expense.updated_at = datetime.utcnow()
         await db.commit()
         await db.refresh(expense)
@@ -286,69 +311,62 @@ async def find_matching_expenses(
     db: AsyncSession,
     uid: str,
     ledger_id: str,
-    args: ExpenseMutationInput,
+    args: ExpenseToolInput,
 ) -> list[Expense]:
-    """
-    Smart fuzzy matching:
-    - Broad SQL filter
-    - Score-based ranking
-    """
+
     try:
         await get_ledger(db, uid, ledger_id)
 
-        # 1. Broad query
-        query = (
-            select(Expense)
-            .where(Expense.ledger_id == ledger_id)
-            .order_by(Expense.date.desc())
-            .limit(100)
+        # ── 1. Semantic retrieval (pgvector) ───────────────────────────────
+        candidates_query = select(Expense).where(
+            Expense.ledger_id == ledger_id
         )
 
-        result = await db.execute(query)
+        if args.note:
+            query_embedding = get_embedding(args.note)
+
+            candidates_query = (
+                candidates_query
+                .order_by(Expense.embedding.op("<=>")(query_embedding))
+            )
+
+        candidates_query = candidates_query.limit(10)
+
+        result = await db.execute(candidates_query)
         expenses = result.scalars().all()
 
         if not expenses:
             return []
-        
-        if args.note:
-            keyword = args.note.lower()
-            expenses = [e for e in expenses if keyword in (e.note or "").lower()]
 
-        # 2. Score each expense
+        # ── 2. Hybrid scoring ───────────────────────────────────────────────
         scored = []
 
         for e in expenses:
             score = 0
 
-            # Amount (strongest signal)
+            # ── AMOUNT match (very strong signal)
             if args.amount is not None:
                 if abs(e.amount - args.amount) < 0.01:
                     score += 5
+                elif abs(e.amount - args.amount) / max(e.amount, 1) < 0.1:
+                    score += 2  # close amount
 
-            # Date
-            if args.date:
-                if e.date == args.date:
-                    score += 3
-
-            # Category
+            # ── CATEGORY match
             if args.category:
                 if e.category == args.category:
-                    score += 2
+                    score += 3
 
-            # Note keyword
-            if args.note:
-                keyword = args.note.lower()
-                if keyword in (e.note or "").lower():
+            # ── DATE match (strong contextual signal)
+            if args.date:
+                if e.date == args.date:
                     score += 4
 
-            # Only consider meaningful matches
-            if score >= 2:
-                scored.append((score, e))
+            scored.append((score, e))
 
-        # 3. Sort by best match
+        # ── 3. Sort by score ───────────────────────────────────────────────
         scored.sort(key=lambda x: x[0], reverse=True)
 
-        # 4. Return top matches only
+        # ── 4. Return top results ──────────────────────────────────────────
         return [e for _, e in scored[:3]]
 
     except Exception as e:

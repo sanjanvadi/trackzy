@@ -30,7 +30,7 @@ TOOLS = [
                     "date": {"type": "string"},
                     "ledger_name": {"type": "string"},
                 },
-                "required": ["amount", "category"],
+                "required": ["amount", "category", "note"],
                 "additionalProperties": False,
             },
         },
@@ -44,12 +44,12 @@ TOOLS = [
                 "type": "object",
                 "properties": {
                     "amount": {"type": ["number","string"]},
-                    "category": {"type": "string", "enum": ["food","transport","shopping","health","entertainment","bills","other","all"]},
+                    "category": {"type": "string", "enum": ["food","transport","shopping","health","entertainment","bills","other"]},
                     "note": {"type": "string"},
                     "date": {"type": "string"},
                     "ledger_name": {"type": "string"},
                 },
-                "required": [],
+                "required": ["note","category"],
                 "additionalProperties": False
             },
         },
@@ -66,7 +66,7 @@ TOOLS = [
                     "date": {"type": "string"},
                     "ledger_name": {"type": "string"},
                 },
-                "required": [],
+                "required": ["note"],
                 "additionalProperties": False
             },
         },
@@ -80,7 +80,7 @@ TOOLS = [
                 "type": "object",
                 "properties": {
                     "period": {"type": "string", "enum": ["today","this_week","this_month","last_month","all"]},
-                    "category": {"type": "string", "enum": ["food","transport","shopping","health","entertainment","bills","other","all"]},
+                    "category": {"type": "string", "enum": ["food","transport","shopping","health","entertainment","bills","other"]},
                     "ledger_name": {"type": "string"},
                 },
                 "required": ["period"],
@@ -104,17 +104,27 @@ Intent rules:
 
 Strict rules:
 - If the user describes a new expense, ALWAYS use add_expense.
-- Infer category from common keywords:
-  coffee, food, restaurant → food
+- If user provides a number, treat it as amount unless explicitly labeled otherwise.
+- Infer category from common keywords, few examples provided below:
+  coffee, food, restaurant, grocery, groceries → food
   uber, taxi, flight → transport
-  groceries, fruits, vegetables → grocery
+  clothes, shoes, watch -> Shopping
+  medicines, doctor, vitamins, dental -> health
+  movie, netflix, concert, gaming -> entertainment
+  electricity, internet, water, phone bill -> Bills
+
 - Always return valid tool arguments.
 - No ledger mentioned or unknown → use default ledger.
 - Use YYYY-MM-DD for dates. Resolve relative dates (yesterday, last Friday) to YYYY-MM-DD.
 - Keep notes short (max 5 words).
+
+Important:
+- Never refuse tool calling due to missing fields.
+- Always attempt best-effort tool call using partial information.
 - Only include fields that are explicitly mentioned or strongly implied.
-- If a field is unknown, OMIT it completely.
-- NEVER return null values.
+- Never include fields with null values
+- If a field is unknown, completely omit it from tool call
+- Do not output null under any circumstance
 
 Examples:
 "I spent 20 on food" → add_expense
@@ -124,7 +134,7 @@ Examples:
 "how much did I spend today" → query_expenses
 
 Example:
-"change the category to transport for the 2000 rupees flight expense"
+"change the category to transport for the 2000 flight expense"
 
 Tool:
 edit_expense({
@@ -132,6 +142,15 @@ edit_expense({
   "category": "transport",
   "note": "flight",
   "ledger_name": "Personal"
+})
+
+Example:
+"convert my cab expense to transport category"
+
+Tool:
+edit_expense({
+    "category":"Transport"
+    "note":"cab"
 })
 
 
@@ -155,18 +174,21 @@ def parse_voice_intent(
     logger.info(f"Parsing: '{transcript[:80]}'")
     logger.info(f"Parsing: '{system_prompt}'")
 
-    response = client.chat.completions.create(
-        model="meta-llama/llama-4-scout-17b-16e-instruct",
-        messages=[
-            {"role": "system", "content": STATIC_RULES},
-            {"role": "system", "content": system_prompt},
-            {"role": "user",   "content": transcript},
-        ],
-        tools=TOOLS,
-        tool_choice="required",
-        max_tokens=1024,
-        temperature=0,
-    )
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": STATIC_RULES},
+                {"role": "system", "content": system_prompt},
+                {"role": "user",   "content": transcript},
+            ],
+            tools=TOOLS,
+            tool_choice="required",
+            max_tokens=1024,
+            temperature=0,
+        )
+    except Exception as e:
+        logger.info(f"llm call {e}")
     print(response)
 
     tool_calls = response.choices[0].message.tool_calls
@@ -178,7 +200,18 @@ def parse_voice_intent(
     raw_args = json.loads(tool_call.function.arguments)
 
     if intent == "add_expense":
-        raw_args["date"] = raw_args["date"] or dt.today()
+        if not raw_args.get("date"):
+            raw_args["date"] = dt.today().isoformat()
+
+
+    amount = raw_args.get("amount")
+
+    if amount is not None:
+        try:
+            raw_args["amount"] = float(amount)
+        except Exception:
+            raw_args["amount"] = None
+
 
     clean_args: dict[str, Any] = {k: v for k, v in raw_args.items() if v is not None}
 
@@ -188,6 +221,6 @@ def parse_voice_intent(
 
     return IntentResponse(
         intent=intent,
-        tool_input=ExpenseMutationInput(**clean_args),
+        tool_input=ExpenseToolInput(**clean_args),
         raw_transcript=transcript,
     )

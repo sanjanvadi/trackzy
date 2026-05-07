@@ -1,6 +1,8 @@
 firebaseEmulator
 .vscode
 .DS_Store
+venv/
+.venv/
 
 backend/__pycache__
 backend/.env

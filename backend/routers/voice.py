@@ -74,7 +74,6 @@ async def parse_voice(
 
     intent = intent_result.intent
     args   = intent_result.tool_input
-    args.amount = float(args.amount)
 
     # ── 4. Resolve ledger server-side — never trust client/LLM ID ─────────────
     ledger_id = await resolve_ledger_id(db, uid, args)

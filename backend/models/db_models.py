@@ -1,8 +1,10 @@
 from sqlmodel import SQLModel, Field
 from sqlalchemy import Index, Column, String, Boolean, DateTime, func
-from typing import Optional
+from pgvector.sqlalchemy import Vector
+from typing import Optional, List, Any, Annotated
 from datetime import datetime, date as Date
 import uuid
+from models.schemas import Category
 
 def new_id() -> str:
     return str(uuid.uuid4())
@@ -22,7 +24,7 @@ class User(UserBase, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class UserCreate(UserBase):
-    pass   # uid comes from verified token, not request body
+    pass   # uid comes from verified token, not request body 
 
 class UserUpdate(SQLModel):
     name:     Optional[str] = Field(default=None, min_length=1, max_length=100)
@@ -68,7 +70,7 @@ class LedgerRead(LedgerBase):
 
 class ExpenseBase(SQLModel):
     amount:   float  = Field(gt=0)
-    category: str    = Field(max_length=30)
+    category: Category    = Field(max_length=30)
     note:     Optional[str] = Field(default=None, max_length=200)
     date:     Date    = Field(default_factory=Date.today)   # YYYY-MM-DD
     source:   str    = Field(default="voice", max_length=10)
@@ -81,23 +83,36 @@ class Expense(ExpenseBase, table=True):
         Index("idx_expenses_date",            "date"),
         Index("idx_expenses_ledger_date",     "ledger_id", "date"),
         Index("idx_expenses_ledger_category", "ledger_id", "category"),
+        Index(
+            "idx_expenses_embedding",
+            "embedding",
+            postgresql_using="hnsw",
+            postgresql_ops={"embedding": "vector_cosine_ops"}
+        ),
     )
 
     id:         str      = Field(default_factory=new_id, primary_key=True)
     ledger_id:  str      = Field(foreign_key="ledgers.id", ondelete="CASCADE", nullable=False)
+
+    embedding: Optional[Any] = Field(
+        sa_column=Column(Vector(384), nullable=True)
+    )
+
+
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(
         sa_column=Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
     )
 
 class ExpenseCreate(ExpenseBase):
-    pass
+    embedding: Optional[list[float]] = None
 
 class ExpenseUpdate(SQLModel):
     amount:   Optional[float] = Field(default=None, gt=0)
-    category: Optional[str]   = Field(default=None, max_length=30)
+    category: Optional[Category]   = Field(default=None, max_length=30)
     note:     Optional[str]   = Field(default=None, max_length=200)
     date:     Optional[Date]   = None
+    embedding: Optional[list[float]] = None
 
 class ExpenseRead(ExpenseBase):
     id:         str
