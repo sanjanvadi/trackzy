@@ -1,121 +1,132 @@
-from sqlmodel import SQLModel, Field
-from sqlalchemy import Index, Column, String, Boolean, DateTime, func
-from pgvector.sqlalchemy import Vector
-from typing import Optional, List, Any, Annotated
-from datetime import datetime, date as Date
+from __future__ import annotations
+
 import uuid
-from models.schemas import Category
+from datetime import datetime, date as pydate
+from decimal import Decimal
+from typing import Optional, List, Any
+
+from pgvector.sqlalchemy import Vector
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Numeric,
+    String,
+    func,
+)
+from sqlalchemy.dialects.postgresql import UUID as PGUUID
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
 
 def new_id() -> str:
     return str(uuid.uuid4())
 
-# ── Users ──────────────────────────────────────────────────────────────────────
 
-class UserBase(SQLModel):
-    name:       str     = Field(min_length=1, max_length=100)
-    email: Optional[str] = Field(default=None, sa_column=Column(String(255), unique=True, nullable=True))
-    currency:   str     = Field(default="USD", max_length=10)
+class Base(DeclarativeBase):
+    pass
 
-class User(UserBase, table=True):
+
+class User(Base):
     __tablename__ = "users"
 
-    # id = Firebase Auth UID — no auto-generated key needed
-    id:         str      = Field(primary_key=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    # Firebase UID — up to 128 chars
+    id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    email: Mapped[Optional[str]] = mapped_column(String(255), unique=True, nullable=True)
+    currency: Mapped[str] = mapped_column(String(10), nullable=False, default="USD")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
 
-class UserCreate(UserBase):
-    pass   # uid comes from verified token, not request body 
+    ledgers: Mapped[List["Ledger"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
 
-class UserUpdate(SQLModel):
-    name:     Optional[str] = Field(default=None, min_length=1, max_length=100)
-    currency: Optional[str] = Field(default=None, max_length=10)
 
-class UserRead(UserBase):
-    id:         str
-    created_at: datetime
-
-# ── Ledgers ────────────────────────────────────────────────────────────────────
-
-class LedgerBase(SQLModel):
-    name:       str  = Field(min_length=1, max_length=50)
-    icon:       str  = Field(default="wallet", max_length=30)
-    is_default: bool = Field(
-    default=False,
-    sa_column=Column(Boolean, nullable=False, server_default="false")
-)
-
-class Ledger(LedgerBase, table=True):
+class Ledger(Base):
     __tablename__ = "ledgers"
     __table_args__ = (
         Index("idx_ledgers_user_id", "user_id"),
     )
 
-    id:         str      = Field(default_factory=new_id, primary_key=True)
-    user_id:    str      = Field(foreign_key="users.id", ondelete="CASCADE", nullable=False)
-    created_at: datetime = Field(default_factory=datetime.utcnow) 
+    id: Mapped[str] = mapped_column(
+        PGUUID(as_uuid=False), primary_key=True, default=new_id
+    )
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    name: Mapped[str] = mapped_column(String(50), nullable=False)
+    icon: Mapped[str] = mapped_column(String(30), nullable=False, default="wallet")
+    is_default: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
 
-class LedgerCreate(LedgerBase):
-    pass
+    user: Mapped["User"] = relationship(back_populates="ledgers")
+    expenses: Mapped[List["Expense"]] = relationship(
+        back_populates="ledger",
+        cascade="all, delete-orphan",
+    )
 
-class LedgerUpdate(SQLModel):
-    name: Optional[str] = Field(default=None, min_length=1, max_length=50)
-    icon: Optional[str] = Field(default=None, max_length=30)
 
-class LedgerRead(LedgerBase):
-    id:         str
-    user_id:    str
-    created_at: datetime
-
-# ── Expenses ───────────────────────────────────────────────────────────────────
-
-class ExpenseBase(SQLModel):
-    amount:   float  = Field(gt=0)
-    category: Category    = Field(max_length=30)
-    note:     Optional[str] = Field(default=None, max_length=200)
-    date:     Date    = Field(default_factory=Date.today)   # YYYY-MM-DD
-    source:   str    = Field(default="voice", max_length=10)
-
-class Expense(ExpenseBase, table=True):
+class Expense(Base):
     __tablename__ = "expenses"
     __table_args__ = (
-        # Composite indexes for the most common query patterns
-        Index("idx_expenses_ledger_id",       "ledger_id"),
-        Index("idx_expenses_date",            "date"),
-        Index("idx_expenses_ledger_date",     "ledger_id", "date"),
+        Index("idx_expenses_ledger_id", "ledger_id"),
+        Index("idx_expenses_date", "date"),
+        Index("idx_expenses_ledger_date", "ledger_id", "date"),
         Index("idx_expenses_ledger_category", "ledger_id", "category"),
         Index(
             "idx_expenses_embedding",
             "embedding",
             postgresql_using="hnsw",
-            postgresql_ops={"embedding": "vector_cosine_ops"}
+            postgresql_ops={"embedding": "vector_cosine_ops"},
+            postgresql_where="embedding IS NOT NULL",  # partial index — skip NULLs
         ),
     )
 
-    id:         str      = Field(default_factory=new_id, primary_key=True)
-    ledger_id:  str      = Field(foreign_key="ledgers.id", ondelete="CASCADE", nullable=False)
-
-    embedding: Optional[Any] = Field(
-        sa_column=Column(Vector(384), nullable=True)
+    id: Mapped[str] = mapped_column(
+        PGUUID(as_uuid=False), primary_key=True, default=new_id
+    )
+    ledger_id: Mapped[str] = mapped_column(
+        ForeignKey("ledgers.id", ondelete="CASCADE"),
+        nullable=False,
     )
 
+    # Numeric avoids float precision loss on currency values
+    amount: Mapped[Decimal] = mapped_column(Numeric(precision=12, scale=2), nullable=False)
+    category: Mapped[str] = mapped_column(String(30), nullable=False)
+    note: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    date: Mapped[pydate] = mapped_column(Date, nullable=False, default=pydate.today)
+    source: Mapped[str] = mapped_column(String(10), nullable=False, default="voice")
 
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(
-        sa_column=Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+    # Any bypasses SQLAlchemy type introspection that chokes on List[float]
+    embedding: Mapped[Optional[Any]] = mapped_column(Vector(384), nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=func.now(),         # ORM-level (e.g. in-memory / test inserts)
+        server_default=func.now(),  # DB-level default on INSERT
+        onupdate=func.now(),        # DB-level update on UPDATE
     )
 
-class ExpenseCreate(ExpenseBase):
-    embedding: Optional[list[float]] = None
-
-class ExpenseUpdate(SQLModel):
-    amount:   Optional[float] = Field(default=None, gt=0)
-    category: Optional[Category]   = Field(default=None, max_length=30)
-    note:     Optional[str]   = Field(default=None, max_length=200)
-    date:     Optional[Date]   = None
-    embedding: Optional[list[float]] = None
-
-class ExpenseRead(ExpenseBase):
-    id:         str
-    ledger_id:  str
-    created_at: datetime
-    updated_at: datetime
+    ledger: Mapped["Ledger"] = relationship(back_populates="expenses")

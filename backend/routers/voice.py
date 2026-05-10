@@ -5,7 +5,7 @@ from datetime import date as dt
 from core.database import get_db
 from middleware.auth import get_current_uid
 from models.schemas import VoiceParseResponse, ExpenseToolInput
-from models.db_models import ExpenseCreate
+from models.schemas import ExpenseCreate
 from services.llm_service import parse_voice_intent
 from services.whisper_service import transcribe_audio
 from services.db_service import (

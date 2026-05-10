@@ -15,6 +15,9 @@ def _require(key: str) -> str:
 # ── Required ───────────────────────────────────────────────────────────────────
 GROQ_API_KEY       = _require("GROQ_API_KEY")
 DATABASE_URL       = _require("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL is not set")
+
 GOOGLE_CREDENTIALS = _require("GOOGLE_APPLICATION_CREDENTIALS")
 
 # ── Optional ───────────────────────────────────────────────────────────────────
