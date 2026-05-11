@@ -1,10 +1,12 @@
-import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
+import { useState } from 'react';
+import { View, Text, StyleSheet, Pressable, Alert, Switch, ScrollView } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '@/src/constants/theme';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   const handleSignOut = () => {
     Alert.alert(
@@ -27,51 +29,130 @@ export default function ProfileScreen() {
     );
   };
 
+  const handleEditProfile = () => {
+    Alert.alert('Edit Profile', 'Profile editing coming soon!');
+  };
+
+  const handleCurrencyChange = () => {
+    Alert.alert('Change Currency', 'Currency selection coming soon!');
+  };
+
+  const handleBudgetChange = () => {
+    Alert.alert('Monthly Budget', 'Budget configuration coming soon!');
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Profile</Text>
+        <Pressable style={styles.menuButton}>
+          <Feather name="menu" size={24} color={COLORS.textPrimary} />
+        </Pressable>
+        <Text style={styles.headerTitle}>Trackzy</Text>
+        <View style={styles.menuButton} />
       </View>
 
-      <View style={styles.content}>
-        {/* User Info Card */}
-        <View style={styles.card}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* User Profile Section */}
+        <View style={styles.profileSection}>
           <View style={styles.avatarContainer}>
-            <Feather name="user" size={48} color={COLORS.primary} />
+            <View style={styles.avatar}>
+              <Feather name="user" size={48} color={COLORS.primary} />
+            </View>
+            <Pressable style={styles.editAvatarButton} onPress={handleEditProfile}>
+              <Feather name="edit-2" size={16} color="#FFFFFF" />
+            </Pressable>
           </View>
           <Text style={styles.userName}>{user?.displayName || 'User'}</Text>
           <Text style={styles.userEmail}>{user?.email}</Text>
         </View>
 
-        {/* Menu Items */}
-        <View style={styles.menuSection}>
-          <Pressable style={styles.menuItem}>
-            <Feather name="settings" size={20} color={COLORS.textSecondary} />
-            <Text style={styles.menuText}>Settings</Text>
-            <Feather name="chevron-right" size={20} color={COLORS.textTertiary} />
-          </Pressable>
+        {/* Preferences Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionHeader}>PREFERENCES</Text>
+          <View style={styles.sectionContent}>
+            {/* Currency */}
+            <Pressable style={styles.menuItem} onPress={handleCurrencyChange}>
+              <View style={[styles.menuIcon, { backgroundColor: '#E3F2FD' }]}>
+                <Feather name="dollar-sign" size={20} color={COLORS.primary} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuLabel}>Currency</Text>
+                <Text style={styles.menuValue}>USD ($)</Text>
+              </View>
+              <Feather name="chevron-right" size={20} color={COLORS.textTertiary} />
+            </Pressable>
 
-          <Pressable style={styles.menuItem}>
-            <Feather name="credit-card" size={20} color={COLORS.textSecondary} />
-            <Text style={styles.menuText}>Ledgers</Text>
-            <Feather name="chevron-right" size={20} color={COLORS.textTertiary} />
-          </Pressable>
-
-          <Pressable style={styles.menuItem}>
-            <Feather name="help-circle" size={20} color={COLORS.textSecondary} />
-            <Text style={styles.menuText}>Help & Support</Text>
-            <Feather name="chevron-right" size={20} color={COLORS.textTertiary} />
-          </Pressable>
-
-          <Pressable style={[styles.menuItem, styles.signOutItem]} onPress={handleSignOut}>
-            <Feather name="log-out" size={20} color={COLORS.error} />
-            <Text style={[styles.menuText, styles.signOutText]}>Sign Out</Text>
-          </Pressable>
+            {/* Monthly Budget */}
+            <Pressable style={styles.menuItem} onPress={handleBudgetChange}>
+              <View style={[styles.menuIcon, { backgroundColor: '#F3E5F5' }]}>
+                <Feather name="credit-card" size={20} color="#9C27B0" />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuLabel}>Monthly Budget</Text>
+                <Text style={styles.menuValue}>$4,500.00</Text>
+              </View>
+              <Feather name="chevron-right" size={20} color={COLORS.textTertiary} />
+            </Pressable>
+          </View>
         </View>
 
-        <Text style={styles.versionText}>Version 1.0.0</Text>
-      </View>
+        {/* System Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionHeader}>SYSTEM</Text>
+          <View style={styles.sectionContent}>
+            {/* Push Notifications */}
+            <View style={styles.menuItem}>
+              <View style={[styles.menuIcon, { backgroundColor: '#FFF3E0' }]}>
+                <Feather name="bell" size={20} color="#FF9800" />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuLabel}>Push Notifications</Text>
+                <Text style={styles.menuSubtext}>Alerts for transactions & limits</Text>
+              </View>
+              <Switch
+                value={notificationsEnabled}
+                onValueChange={setNotificationsEnabled}
+                trackColor={{ false: '#E0E0E0', true: COLORS.primary }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+
+            {/* Help & Support */}
+            <Pressable style={styles.menuItem}>
+              <View style={[styles.menuIcon, { backgroundColor: '#E8F5E9' }]}>
+                <Feather name="help-circle" size={20} color="#4CAF50" />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuLabel}>Help & Support</Text>
+              </View>
+              <Feather name="chevron-right" size={20} color={COLORS.textTertiary} />
+            </Pressable>
+
+            {/* About */}
+            <Pressable style={[styles.menuItem, styles.lastMenuItem]}>
+              <View style={[styles.menuIcon, { backgroundColor: '#FCE4EC' }]}>
+                <Feather name="info" size={20} color="#E91E63" />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuLabel}>About</Text>
+                <Text style={styles.menuSubtext}>Version 1.0.0</Text>
+              </View>
+              <Feather name="chevron-right" size={20} color={COLORS.textTertiary} />
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Logout Button */}
+        <Pressable style={styles.logoutButton} onPress={handleSignOut}>
+          <Feather name="log-out" size={20} color={COLORS.error} />
+          <Text style={styles.logoutText}>Logout</Text>
+        </Pressable>
+      </ScrollView>
     </View>
   );
 }
@@ -82,38 +163,64 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.xl,
     paddingBottom: SPACING.md,
     backgroundColor: '#FFFFFF',
+  },
+  menuButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: TYPOGRAPHY.fontSize.h2,
     fontWeight: TYPOGRAPHY.fontWeight.bold,
     color: COLORS.textPrimary,
   },
-  content: {
+  scrollView: {
     flex: 1,
-    padding: SPACING.lg,
   },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: BORDER_RADIUS.xl,
-    padding: SPACING.xl,
+  scrollContent: {
+    padding: SPACING.lg,
+    paddingBottom: 100,
+  },
+  profileSection: {
     alignItems: 'center',
-    marginBottom: SPACING.xl,
+    paddingVertical: SPACING.xl,
+    marginBottom: SPACING.lg,
   },
   avatarContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    position: 'relative',
+    marginBottom: SPACING.md,
+  },
+  avatar: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     backgroundColor: '#E3F2FD',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: SPACING.md,
+  },
+  editAvatarButton: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
   },
   userName: {
-    fontSize: TYPOGRAPHY.fontSize.h3,
+    fontSize: TYPOGRAPHY.fontSize.h1,
     fontWeight: TYPOGRAPHY.fontWeight.bold,
     color: COLORS.textPrimary,
     marginBottom: SPACING.xs,
@@ -122,11 +229,20 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.fontSize.body,
     color: COLORS.textSecondary,
   },
-  menuSection: {
+  section: {
+    marginBottom: SPACING.xl,
+  },
+  sectionHeader: {
+    fontSize: TYPOGRAPHY.fontSize.caption,
+    fontWeight: TYPOGRAPHY.fontWeight.bold,
+    color: COLORS.textSecondary,
+    letterSpacing: 1,
+    marginBottom: SPACING.md,
+  },
+  sectionContent: {
     backgroundColor: '#FFFFFF',
     borderRadius: BORDER_RADIUS.xl,
     overflow: 'hidden',
-    marginBottom: SPACING.xl,
   },
   menuItem: {
     flexDirection: 'row',
@@ -136,22 +252,47 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F5F5F5',
   },
-  menuText: {
-    flex: 1,
-    fontSize: TYPOGRAPHY.fontSize.body,
-    color: COLORS.textPrimary,
-    fontWeight: TYPOGRAPHY.fontWeight.medium,
-  },
-  signOutItem: {
+  lastMenuItem: {
     borderBottomWidth: 0,
   },
-  signOutText: {
-    color: COLORS.error,
+  menuIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  versionText: {
+  menuTextContainer: {
+    flex: 1,
+  },
+  menuLabel: {
+    fontSize: TYPOGRAPHY.fontSize.body,
+    fontWeight: TYPOGRAPHY.fontWeight.semibold,
+    color: COLORS.textPrimary,
+    marginBottom: 2,
+  },
+  menuValue: {
     fontSize: TYPOGRAPHY.fontSize.caption,
-    color: COLORS.textTertiary,
-    textAlign: 'center',
-    marginTop: 'auto',
+    color: COLORS.textSecondary,
+  },
+  menuSubtext: {
+    fontSize: TYPOGRAPHY.fontSize.caption,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+    backgroundColor: '#FFEBEE',
+    paddingVertical: SPACING.lg,
+    borderRadius: BORDER_RADIUS.full,
+    marginTop: SPACING.lg,
+  },
+  logoutText: {
+    fontSize: TYPOGRAPHY.fontSize.body,
+    fontWeight: TYPOGRAPHY.fontWeight.semibold,
+    color: COLORS.error,
   },
 });
