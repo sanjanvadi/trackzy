@@ -1,6 +1,19 @@
 firebaseEmulator
 .vscode
 .DS_Store
+# HuggingFace
+.cache/
+**/.cache/
+huggingface/
+**/huggingface/
+models/
+
+# Python
+__pycache__/
+*.pyc
+
+# Env
+.env
 venv/
 .venv/
 

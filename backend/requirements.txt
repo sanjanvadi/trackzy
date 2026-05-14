@@ -26,7 +26,6 @@ networkx==3.6.1
 numpy==2.4.4
 packaging==26.2
 pgvector==0.4.2
-python-dotenv==1.2.2
 pydantic==2.13.4
 pydantic_core==2.46.4
 Pygments==2.20.0
@@ -55,3 +54,5 @@ typing-inspection==0.4.2
 typing_extensions==4.15.0
 uvicorn==0.46.0
 uvicorn==0.46.0
+python-multipart==0.0.27
+dotenv==0.9.9

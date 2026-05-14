@@ -1,7 +1,14 @@
+import os
+os.environ.setdefault("HF_HOME", "/tmp/huggingface")
+
+import asyncio
 from datetime import datetime, date as Date, timedelta
-from sqlalchemy import select, update
+
+from sqlalchemy import select, update, Float, func, cast
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from fastapi import HTTPException
+from pgvector.sqlalchemy import Vector
 from sentence_transformers import SentenceTransformer
 
 from models.db_models import User, Ledger, Expense
@@ -15,7 +22,9 @@ DEFAULT_LEDGERS = [
     {"name": "Business", "icon": "briefcase", "is_default": False},
 ]
 
-model = SentenceTransformer("all-MiniLM-L6-v2")
+model = SentenceTransformer(
+    "all-MiniLM-L6-v2",
+    device="cpu")
 
 def get_embedding(text: str) -> list[float]:
     if not text:
@@ -585,101 +594,182 @@ async def delete_expense_db(
         )
 
 
+SIMILARITY_THRESHOLD = 0.4
+MIN_SCORE = 1.0
+AMBIGUITY_LIMIT = 5
+
+# ── Scoring weights ───────────────────────────────────────────────────────────
+W_SEMANTIC      = 1.0   # max semantic contribution (1 - distance)
+W_AMOUNT_EXACT  = 2.0   # amount within 1 cent
+W_AMOUNT_APPROX = 1.0   # amount within 10%
+W_CATEGORY      = 1.0   # category matches
+W_DATE          = 1.5   # date matches
+
+
+async def _exact_match_fallback(
+    db: AsyncSession,
+    ledger_id: str,
+    args: ExpenseToolInput,
+    parsed_date: Date | None,
+) -> list[Expense]:
+    """Catch expenses without embeddings missed by vector search."""
+    filters = [
+        Expense.ledger_id == ledger_id,
+        Expense.embedding.is_(None),
+    ]
+    if args.note:
+        filters.append(Expense.note.ilike(f"%{args.note}%"))
+    if parsed_date:
+        filters.append(Expense.date == parsed_date)
+
+    result = await db.execute(select(Expense).where(*filters).limit(5))
+    return list(result.scalars().all())
+
+
 async def find_matching_expenses(
     db: AsyncSession,
     uid: str,
     ledger_id: str,
     args: ExpenseToolInput,
 ) -> list[Expense]:
-
     try:
-        # Verify ledger ownership
         await get_ledger(db, uid, ledger_id)
 
-        # ─────────────────────────────────────────────────────────────
-        # Semantic retrieval using pgvector
-        # ─────────────────────────────────────────────────────────────
-
-        query = select(Expense).where(
-            Expense.ledger_id == ledger_id
-        )
-
-        if args.note:
-
-            query_embedding = get_embedding(
-                args.note
-            )
-
-            query = query.order_by(
-                Expense.embedding.op("<=>")(
-                    query_embedding
-                )
-            )
-
-        query = query.limit(10)
-
-        result = await db.execute(query)
-
-        expenses = result.scalars().all()
-
-        if not expenses:
+        # Guard — nothing to match on
+        if not args.note and args.amount is None and not args.date and not args.category:
             return []
 
-        # ─────────────────────────────────────────────────────────────
-        # Hybrid scoring
-        # ─────────────────────────────────────────────────────────────
+        # Parse date once
+        parsed_date: Date | None = None
+        if args.date:
+            try:
+                parsed_date = Date.fromisoformat(args.date)
+            except ValueError:
+                logger.warning(f"Invalid date from LLM: {args.date}")
 
-        scored: list[tuple[int, Expense]] = []
+        # ── No-note path ──────────────────────────────────────────────
+        if not args.note:
+            filters = [Expense.ledger_id == ledger_id]
+            active_filters =0
 
-        for expense in expenses:
+            if parsed_date:
+                filters.append(Expense.date == parsed_date)
+                active_filters +=1
 
-            score = 0
+            if args.category:
+                filters.append(Expense.category == args.category)
+                active_filters +=1
+
+            if args.amount is not None:
+                exp_amt = cast(Expense.amount, Float)
+                target = float(args.amount)
+                filters.append(
+                    func.abs(exp_amt - target) <= func.greatest(1.0, target * 0.1)
+                )
+                active_filters +=1
+
+            # Category alone is not specific enough — could match 100s of expenses
+            if active_filters == 1 and args.category and not parsed_date and args.amount is None:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Please provide more details such as amount or date to identify the expense.",
+                )
+
+            result = await db.execute(
+                select(Expense)
+                .where(*filters)
+                .order_by(Expense.date.desc())
+                .limit(AMBIGUITY_LIMIT + 1)  # fetch one extra to detect ambiguity
+            )
+            expenses = list(result.scalars().all())
+
+            if len(expenses) > AMBIGUITY_LIMIT:
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        "Too many matching expenses. "
+                        "Please provide more details such as amount or date to narrow it down."
+                    ),
+                )
+
+            return expenses
+
+        # ── Note path: vector search + fallback + hybrid scoring ──────
+
+        # Run in thread — avoids blocking event loop if get_embedding is sync
+        query_embedding = await asyncio.to_thread(get_embedding, args.note)
+
+        # Label distance once — avoids computing it twice in WHERE + ORDER BY
+        distance_expr = Expense.embedding.cosine_distance(query_embedding)
+        distance = distance_expr.label("distance")
+
+        query = (
+            select(Expense, distance)
+            .where(
+                Expense.ledger_id == ledger_id,
+                Expense.embedding.isnot(None),
+                distance_expr < SIMILARITY_THRESHOLD,
+            )
+            .order_by(distance)
+            .limit(10)
+        )
+        result = await db.execute(query)
+        rows = result.all()  # list of (Expense, distance)
+
+        # Merge fallback (NULL-embedding expenses) with sentinel distance
+        fallback = await _exact_match_fallback(db, ledger_id, args, parsed_date)
+        seen_ids = {expense.id for expense, _ in rows}
+        rows += [
+            (expense, SIMILARITY_THRESHOLD)
+            for expense in fallback
+            if expense.id not in seen_ids
+        ]
+
+        if not rows:
+            return []
+
+        # ── Hybrid scoring ────────────────────────────────────────────
+        scored: list[tuple[float, Expense]] = []
+
+        for expense, dist in rows:
+            # Semantic score — closer distance = higher score
+            score: float = W_SEMANTIC * max(0.0, 1.0 - float(dist))
 
             # Amount match
             if args.amount is not None:
-
-                if abs(expense.amount - args.amount) < 0.01:
-                    score += 5
-
-                elif (
-                    abs(expense.amount - args.amount)
-                    / max(expense.amount, 1)
-                ) < 0.1:
-                    score += 2
+                exp_amt   = float(expense.amount)
+                target    = float(args.amount)
+                tolerance = max(1.0, target * 0.1)
+                if abs(exp_amt - target) < 0.01:
+                    score += W_AMOUNT_EXACT
+                elif abs(exp_amt - target) <= tolerance:
+                    score += W_AMOUNT_APPROX
 
             # Category match
-            if args.category:
-
-                if expense.category == args.category:
-                    score += 3
+            if args.category and expense.category == args.category:
+                score += W_CATEGORY
 
             # Date match
-            if args.date:
+            if parsed_date and expense.date == parsed_date:
+                score += W_DATE
 
-                if expense.date == args.date:
-                    score += 4
-            if score>0:
-                scored.append((score, expense))
+            scored.append((score, expense))
 
-        # Highest score first
-        scored.sort(
-            key=lambda x: x[0],
-            reverse=True
-        )
+        scored.sort(key=lambda x: x[0], reverse=True)
 
-        # Return top 3
         return [
             expense
-            for _, expense in scored[:3]
+            for score, expense in scored[:3]
+            if score >= MIN_SCORE
         ]
 
     except HTTPException:
         raise
-
-    except Exception as e:
+    except Exception:
+        logger.exception("find_matching_expenses failed")
         raise HTTPException(
             status_code=500,
-            detail=f"Could not lookup expense: {str(e)}"
+            detail="Could not lookup expense",
         )
  
 # ── Summary / reporting ────────────────────────────────────────────────────────

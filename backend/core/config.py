@@ -1,4 +1,5 @@
 import os
+import json
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -19,7 +20,7 @@ if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL is not set")
 
 GOOGLE_CREDENTIALS = _require("GOOGLE_APPLICATION_CREDENTIALS")
-
+FIREBASE_SERVICE_ACCOUNT = json.loads(_require("FIREBASE_SERVICE_ACCOUNT"))
 # ── Optional ───────────────────────────────────────────────────────────────────
 ENV             = os.getenv("ENV", "development")
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:8081").split(",")
