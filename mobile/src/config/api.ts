@@ -22,6 +22,7 @@ apiClient.interceptors.request.use(
       if (user) {
         // Get fresh Firebase ID token
         const token = await user.getIdToken();
+        console.log('token', token);
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (error) {

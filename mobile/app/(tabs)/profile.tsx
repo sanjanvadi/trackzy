@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Alert, Switch, ScrollView } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '@/src/contexts/AuthContext';
+import { useTheme } from '@/src/contexts/ThemeContext';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '@/src/constants/theme';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
+  const { colors, isDark, toggleTheme } = useTheme();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   const handleSignOut = () => {
@@ -42,14 +44,10 @@ export default function ProfileScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={styles.header}>
-        <Pressable style={styles.menuButton}>
-          <Feather name="menu" size={24} color={COLORS.textPrimary} />
-        </Pressable>
-        <Text style={styles.headerTitle}>Trackzy</Text>
-        <View style={styles.menuButton} />
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Trackzy</Text>
       </View>
 
       <ScrollView
@@ -103,8 +101,25 @@ export default function ProfileScreen() {
 
         {/* System Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionHeader}>SYSTEM</Text>
-          <View style={styles.sectionContent}>
+          <Text style={[styles.sectionHeader, { color: colors.textSecondary }]}>SYSTEM</Text>
+          <View style={[styles.sectionContent, { backgroundColor: colors.surface }]}>
+            {/* Dark Mode */}
+            <View style={styles.menuItem}>
+              <View style={[styles.menuIcon, { backgroundColor: '#E0E7FF' }]}>
+                <Feather name={isDark ? 'moon' : 'sun'} size={20} color="#6366F1" />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={[styles.menuLabel, { color: colors.textPrimary }]}>Dark Mode</Text>
+                <Text style={[styles.menuSubtext, { color: colors.textSecondary }]}>Switch between light and dark theme</Text>
+              </View>
+              <Switch
+                value={isDark}
+                onValueChange={toggleTheme}
+                trackColor={{ false: '#E0E0E0', true: COLORS.primary }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+
             {/* Push Notifications */}
             <View style={styles.menuItem}>
               <View style={[styles.menuIcon, { backgroundColor: '#FFF3E0' }]}>
@@ -163,19 +178,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.xl,
     paddingBottom: SPACING.md,
     backgroundColor: '#FFFFFF',
-  },
-  menuButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   headerTitle: {
     fontSize: TYPOGRAPHY.fontSize.h2,

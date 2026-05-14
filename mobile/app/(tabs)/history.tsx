@@ -9,7 +9,9 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import { useTheme } from '@/src/contexts/ThemeContext';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '@/src/constants/theme';
 import { useDefaultLedger } from '@/src/hooks/useLedgers';
 import { useExpenses, useExpenseSummary, useDeleteExpense } from '@/src/hooks/useExpenses';
@@ -34,6 +36,8 @@ const getCategoryIcon = (category: Category): string => {
 };
 
 export default function HistoryScreen() {
+  const router = useRouter();
+  const { colors, isDark, toggleTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [swipedId, setSwipedId] = useState<string | null>(null);
 
@@ -147,14 +151,13 @@ export default function HistoryScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={styles.header}>
-        <Pressable style={styles.menuButton}>
-          <Feather name="menu" size={24} color={COLORS.textPrimary} />
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Trackzy</Text>
+        <Pressable style={styles.themeToggle} onPress={toggleTheme}>
+          <Feather name={isDark ? 'sun' : 'moon'} size={20} color={colors.textSecondary} />
         </Pressable>
-        <Text style={styles.headerTitle}>Trackzy</Text>
-        <View style={styles.menuButton} />
       </View>
 
       {/* Search Bar */}
@@ -203,6 +206,11 @@ export default function HistoryScreen() {
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      {/* Voice FAB */}
+      <Pressable style={styles.voiceFab} onPress={() => router.push('/voice-recording')}>
+        <Feather name="mic" size={28} color="#FFFFFF" />
+      </Pressable>
     </View>
   );
 }
@@ -221,16 +229,19 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.md,
     backgroundColor: '#FFFFFF',
   },
-  menuButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   headerTitle: {
     fontSize: TYPOGRAPHY.fontSize.h2,
     fontWeight: TYPOGRAPHY.fontWeight.bold,
     color: COLORS.textPrimary,
+    flex: 1,
+    textAlign: 'center',
+  },
+  themeToggle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -347,5 +358,21 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.fontSize.body,
     color: COLORS.textTertiary,
     marginTop: SPACING.xs,
+  },
+  voiceFab: {
+    position: 'absolute',
+    bottom: 80,
+    right: SPACING.lg,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
 });

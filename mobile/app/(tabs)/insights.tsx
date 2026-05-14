@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Dimensions, ActivityIndicator } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import { useTheme } from '@/src/contexts/ThemeContext';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '@/src/constants/theme';
 import { useDefaultLedger } from '@/src/hooks/useLedgers';
 import { useExpenseSummary } from '@/src/hooks/useExpenses';
@@ -10,6 +12,8 @@ import { categoryColors, categoryLabels } from '@/src/constants/categories';
 const screenWidth = Dimensions.get('window').width;
 
 export default function InsightsScreen() {
+  const router = useRouter();
+  const { colors, isDark, toggleTheme } = useTheme();
   const [selectedPeriod, setSelectedPeriod] = useState<'this_week' | 'this_month'>('this_month');
 
   // Fetch default ledger and summary
@@ -38,14 +42,13 @@ export default function InsightsScreen() {
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={styles.header}>
-        <Pressable style={styles.menuButton}>
-          <Feather name="menu" size={24} color={COLORS.textPrimary} />
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Trackzy</Text>
+        <Pressable style={styles.themeToggle} onPress={toggleTheme}>
+          <Feather name={isDark ? 'sun' : 'moon'} size={20} color={colors.textSecondary} />
         </Pressable>
-        <Text style={styles.headerTitle}>Trackzy</Text>
-        <View style={styles.menuButton} />
       </View>
 
       <ScrollView
@@ -135,6 +138,11 @@ export default function InsightsScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Voice FAB */}
+      <Pressable style={styles.voiceFab} onPress={() => router.push('/voice-recording')}>
+        <Feather name="mic" size={28} color="#FFFFFF" />
+      </Pressable>
     </View>
   );
 }
@@ -153,16 +161,19 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.md,
     backgroundColor: '#FFFFFF',
   },
-  menuButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   headerTitle: {
     fontSize: TYPOGRAPHY.fontSize.h2,
     fontWeight: TYPOGRAPHY.fontWeight.bold,
     color: COLORS.textPrimary,
+    flex: 1,
+    textAlign: 'center',
+  },
+  themeToggle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollView: {
     flex: 1,
@@ -315,5 +326,21 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.fontSize.body,
     color: COLORS.textSecondary,
     marginTop: SPACING.md,
+  },
+  voiceFab: {
+    position: 'absolute',
+    bottom: 80,
+    right: SPACING.lg,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
 });

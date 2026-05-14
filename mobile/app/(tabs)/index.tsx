@@ -1,6 +1,8 @@
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '@/src/contexts/AuthContext';
+import { useTheme } from '@/src/contexts/ThemeContext';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '@/src/constants/theme';
 import { formatCurrency } from '@/src/utils/currency';
 import { formatDate, getRelativeTime } from '@/src/utils/date';
@@ -25,7 +27,9 @@ const getCategoryIcon = (category: Category): string => {
 };
 
 export default function DashboardScreen() {
+  const router = useRouter();
   const { user } = useAuth();
+  const { colors, isDark, toggleTheme } = useTheme();
 
   // Fetch default ledger
   const { data: defaultLedger, isLoading: ledgerLoading } = useDefaultLedger();
@@ -44,8 +48,7 @@ export default function DashboardScreen() {
   const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long' });
 
   const handleVoiceInput = () => {
-    // TODO: Navigate to voice input screen
-    console.log('Voice input');
+    router.push('/voice-recording');
   };
 
   const handleViewAll = () => {
@@ -56,14 +59,13 @@ export default function DashboardScreen() {
   const isLoading = ledgerLoading || expensesLoading || summaryLoading;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={styles.header}>
-        <Pressable style={styles.menuButton}>
-          <Feather name="menu" size={24} color={COLORS.textPrimary} />
+      <View style={[styles.header, { backgroundColor: colors.surface }]}>
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Trackzy</Text>
+        <Pressable style={styles.themeToggle} onPress={toggleTheme}>
+          <Feather name={isDark ? 'sun' : 'moon'} size={20} color={colors.textSecondary} />
         </Pressable>
-        <Text style={styles.headerTitle}>Trackzy</Text>
-        <View style={styles.menuButton} />
       </View>
 
       <ScrollView
@@ -178,16 +180,19 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.md,
     backgroundColor: '#FFFFFF',
   },
-  menuButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   headerTitle: {
-    fontSize: TYPOGRAPHY.fontSize.h3,
+    fontSize: TYPOGRAPHY.fontSize.h2,
     fontWeight: TYPOGRAPHY.fontWeight.bold,
     color: COLORS.textPrimary,
+    flex: 1,
+    textAlign: 'center',
+  },
+  themeToggle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollView: {
     flex: 1,

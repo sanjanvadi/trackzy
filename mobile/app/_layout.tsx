@@ -3,6 +3,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from '@/src/config/queryClient';
 import { AuthProvider, useAuth } from '@/src/contexts/AuthContext';
+import { ThemeProvider } from '@/src/contexts/ThemeContext';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { COLORS } from '@/src/constants/theme';
 
@@ -48,9 +49,11 @@ function RootLayoutNav() {
 export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <RootLayoutNav />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <RootLayoutNav />
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
