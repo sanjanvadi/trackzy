@@ -12,7 +12,7 @@ client = Groq(api_key=GROQ_API_KEY)
 MAX_AUDIO_BYTES     = 10 * 1024 * 1024
 ALLOWED_AUDIO_TYPES = {
     "audio/m4a", "audio/mp4", "audio/mpeg",
-    "audio/wav", "audio/webm", "audio/x-m4a",
+    "audio/wav","audio/wave", "audio/webm", "audio/x-m4a",
 }
 
 async def transcribe_audio(audio_file: UploadFile) -> str:
@@ -40,7 +40,7 @@ async def transcribe_audio(audio_file: UploadFile) -> str:
 
         with open(tmp_path, "rb") as f:
             result = client.audio.transcriptions.create(
-                model="whisper-large-v3",
+                model="whisper-large-v3-turbo",
                 file=f,
                 language="en",
                 response_format="text",

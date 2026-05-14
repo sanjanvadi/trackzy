@@ -5,7 +5,7 @@ from datetime import date as Date
 
 from core.database import get_db
 from middleware.auth import get_current_uid
-from models.db_models import ExpenseCreate, ExpenseUpdate, ExpenseRead
+from models.schemas import ExpenseCreate, ExpenseUpdate, ExpenseRead
 from models.schemas import ExpenseSummary, Period, Category
 from services.db_service import (
     list_expenses, get_expense,

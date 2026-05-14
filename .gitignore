@@ -1,9 +1,16 @@
 firebaseEmulator
 .vscode
 .DS_Store
+venv/
+.venv/
 
 backend/__pycache__
 backend/.env
 backend/serviceAccount.json
 backend/*/__pycache__
 
+testing
+audio
+audioTest
+index.txt
+indexTest.txt

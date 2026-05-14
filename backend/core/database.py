@@ -1,13 +1,16 @@
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlmodel import SQLModel
-from core.config import DATABASE_URL
+import os
+from typing import AsyncGenerator
 
-# pool_pre_ping=True reconnects after Neon's scale-to-zero idle periods
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.pool import NullPool
+
+from core.config import DATABASE_URL
+from models.db_models import Base
+
 engine = create_async_engine(
-    DATABASE_URL,
+    DATABASE_URL,          # must include ?ssl=require for Neon
     echo=False,
-    pool_size=10,
-    max_overflow=20,
+    poolclass=NullPool,    # required for Neon / serverless
     pool_pre_ping=True,
 )
 
@@ -17,12 +20,14 @@ AsyncSessionLocal = async_sessionmaker(
     expire_on_commit=False,
 )
 
-async def create_tables() -> None:
-    """Create all tables on startup if they don't exist."""
-    async with engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
 
-async def get_db() -> AsyncSession:
-    """FastAPI dependency — yields a database session per request."""
+async def create_tables() -> None:
+    """Dev/test only — use Alembic in production."""
+    if os.getenv("ENV") != "production":
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
         yield session

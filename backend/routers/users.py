@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
 from middleware.auth import get_current_uid
-from models.db_models import UserCreate, UserUpdate, UserRead
+from models.schemas import UserCreate, UserUpdate, UserRead
 from services.db_service import get_user, create_or_update_user, delete_user
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -23,8 +23,8 @@ async def register_user(
     try:
         user = await create_or_update_user(db, uid, payload.model_dump())
         return user
-    except:
-        raise HTTPException(status_code=404, detail="User Already exists.")
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"User Already exists.{e}")
 
 
 @router.get("/me", response_model=UserRead)

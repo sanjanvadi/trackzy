@@ -1,5 +1,3 @@
-import json
-
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import date as dt
@@ -7,7 +5,7 @@ from datetime import date as dt
 from core.database import get_db
 from middleware.auth import get_current_uid
 from models.schemas import VoiceParseResponse, ExpenseToolInput
-from models.db_models import ExpenseCreate
+from models.schemas import ExpenseCreate
 from services.llm_service import parse_voice_intent
 from services.whisper_service import transcribe_audio
 from services.db_service import (
@@ -86,7 +84,7 @@ async def parse_voice(
 
     # ── ADD ───────────────────────────────────────────────────────────────────
     if intent == "add_expense":
-        if args.amount is None:
+        if args.amount is None or args.amount<=0:
             raise HTTPException(status_code=422, detail="Could not extract amount from speech.")
 
         payload = ExpenseCreate(
@@ -108,10 +106,24 @@ async def parse_voice(
 
     # ── EDIT ──────────────────────────────────────────────────────────────────
     elif intent == "edit_expense":
+        ALLOWED_UPDATE_FIELDS = {"amount", "category", "note", "date"}
+
         update_fields = {
-            k: v for k, v in args.model_dump().items()
-            if v is not None and k not in ("expense_id", "period", "ledger_name")
+            k: v
+            for k, v in args.model_dump().items()
+            if k in ALLOWED_UPDATE_FIELDS and v is not None
         }
+
+        if "amount" in update_fields and update_fields["amount"] <= 0:
+            del update_fields["amount"]
+
+        if not update_fields:
+            return VoiceParseResponse(
+                intent=intent,
+                message="Nothing to update.",
+                tool_input=args,
+            )
+
 
         # Second pass — frontend confirmed exact expense_id after seeing candidates
         if args.expense_id:

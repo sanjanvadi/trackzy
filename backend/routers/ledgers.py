@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
 from middleware.auth import get_current_uid
-from models.db_models import LedgerCreate, LedgerUpdate, LedgerRead
+from models.schemas import LedgerCreate, LedgerUpdate, LedgerRead
 from services.db_service import (
     get_ledgers, get_ledger, create_ledger,
     update_ledger, delete_ledger, set_default_ledger,
