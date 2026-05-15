@@ -111,7 +111,6 @@ class ExpenseUpdate(BaseSchema):
 class ExpenseRead(ExpenseBase, BaseReadSchema):
     id: str
     ledger_id: str
-    embedding: Embedding384 = None
     created_at: datetime
     updated_at: datetime
 
