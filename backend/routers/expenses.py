@@ -67,13 +67,11 @@ async def create_expense_endpoint(
     uid:       str          = Depends(get_current_uid),
     db:        AsyncSession = Depends(get_db),
 ):
-    print(payload.model_dump())
     """Manually add an expense (non-voice). source is set to 'manual'."""
     from services.db_service import get_ledger
     await get_ledger(db, uid, ledger_id)   # verify ownership
 
     data         = payload.model_dump()
-    print(data)
     data["source"] = "manual"
     create_payload = ExpenseCreate(**data)
     return await create_expense_db(db, ledger_id, create_payload)
