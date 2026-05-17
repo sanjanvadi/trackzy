@@ -27,6 +27,7 @@ async def list_expenses_endpoint(
     start_date: Optional[Date] = Query(None, description="dateFormat"),
     end_date:   Optional[Date] = Query(None, description="dateFormat"),
     category:   Optional[Category] = Query(None),
+    sorting:    Optional[str] = 'date',
 ):
     """
     List expenses for a ledger.
@@ -40,6 +41,7 @@ async def list_expenses_endpoint(
         category=category,
         page=page,
         per_page=per_page,
+        sorting=sorting,
     )
 
 

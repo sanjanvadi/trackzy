@@ -21,7 +21,7 @@ TOOLS = [
             "name": "add_expense",
             "description": (
                 "Use when the user reports ANY new purchase, payment, or spending event. "
-                "Trigger words: paid, spent, bought, had, got, ordered, purchased. "
+                "Trigger words: add, paid, spent, bought, had, got, ordered, purchased. "
                 "'paid X for Y' and 'spent X on Y' are ALWAYS add_expense with no exceptions. "
                 "Do NOT use if the user is explicitly correcting or modifying an existing expense."
             ),
@@ -48,8 +48,8 @@ TOOLS = [
             "name": "edit_expense",
             "description": (
                 "Use ONLY when the user explicitly wants to modify or correct an EXISTING expense. "
-                "Requires explicit correction language: change, update, fix, make it, instead, correct, edit, wrong. "
-                "Do NOT use if the user says 'paid', 'spent', or 'bought' — those are always add_expense. "
+                "Requires explicit correction language: change, update, fix, make it, move, instead, correct, edit, wrong. "
+                "Do NOT use if the user says 'paid', 'spent', 'add' or 'bought' — those are always add_expense. "
                 "Do NOT use just because the note matches a past expense name. "
                 "An amount + item description alone is never a correction."
             ),

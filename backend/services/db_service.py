@@ -421,6 +421,7 @@ async def list_expenses(
     category: str | None = None,
     page: int = 1,
     per_page: int = 20,
+    sorting: str = 'date',
 ) -> list[Expense]:
 
     try:
@@ -447,10 +448,18 @@ async def list_expenses(
                 Expense.category == category
             )
 
+        if sorting=='date':
+            query = query.order_by(Expense.date.desc())
+        elif sorting=='updatedDate':
+            query = query.order_by(Expense.updated_at.desc())
+        elif sorting=='amountDesc':
+            query = query.order_by(Expense.amount.desc())
+        elif sorting=='amountInc':
+            query = query.order_by(Expense.amount)
+
         # Pagination + sorting
         query = (
             query
-            .order_by(Expense.date.desc())
             .offset((page - 1) * per_page)
             .limit(per_page)
         )
