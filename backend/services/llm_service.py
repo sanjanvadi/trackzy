@@ -1,4 +1,6 @@
 import json
+import re
+from enum import Enum
 from datetime import date as dt
 from typing import Any
 from groq import Groq
@@ -185,6 +187,50 @@ User: "total spending this month"
 Tool: query_expenses({"period": "this_month"})
 """
 
+class Intent(str, Enum):
+    ADD = "add_expense"
+    EDIT = "edit_expense"
+    DELETE = "delete_expense"
+    QUERY = "query_expenses"
+    UNKNOWN = "unknown"
+
+ADD_KEYWORDS = {
+    "add", "paid", "spent", "bought", "purchase", "ordered", "got", "had", "lent", "gave"
+}
+
+EDIT_KEYWORDS = {
+    "change", "update", "edit", "fix", "correct", "instead", "make it", "modify"
+}
+
+DELETE_KEYWORDS = {
+    "delete", "remove", "undo", "cancel", "erase"
+}
+
+QUERY_KEYWORDS = {
+    "how much", "total", "summary", "show me", "what did i spend", "spent today"
+}
+
+def preclassify_intent(text: str) -> Intent:
+    text = text.lower().strip()
+
+    # 1. DELETE (highest priority)
+    if any(k in text for k in DELETE_KEYWORDS):
+        return Intent.DELETE
+
+    # 2. QUERY
+    if any(k in text for k in QUERY_KEYWORDS):
+        return Intent.QUERY
+
+    # 3. EDIT (must be explicit correction language)
+    if any(k in text for k in EDIT_KEYWORDS):
+        return Intent.EDIT
+
+    # 4. ADD (important rule: amount + context strongly biases ADD)
+    if any(k in text for k in ADD_KEYWORDS):
+        return Intent.ADD
+
+    return Intent.UNKNOWN
+
 
 def parse_voice_intent(
     transcript: str,
@@ -227,7 +273,14 @@ def parse_voice_intent(
 
     tool_call = tool_calls[0]
     intent = tool_call.function.name
+    manual_intent = preclassify_intent(transcript)
     raw_args: dict[str, Any] = json.loads(tool_call.function.arguments)
+
+    if intent!=manual_intent:
+        logger.warning(f"!!!!!!INTENT MISSCLASSIFIED!!!!!!!!: Intent: {intent}: transcript: {transcript}")
+    
+    if manual_intent!="unknown":
+        intent = manual_intent
 
     # Default date for add_expense if not extracted
     if intent == "add_expense" and not raw_args.get("date"):
