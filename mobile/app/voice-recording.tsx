@@ -54,7 +54,7 @@ export default function VoiceRecordingScreen() {
 
   // Timer for recording duration
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (isRecording) {
       setRecordingDuration(0);
       interval = setInterval(() => {

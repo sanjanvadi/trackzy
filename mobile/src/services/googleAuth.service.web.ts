@@ -1,33 +1,56 @@
 import {
   GoogleAuthProvider,
-  signInWithPopup,
-  User,
+  signInWithCredential,
 } from "firebase/auth";
 
+import {
+  signInWithGoogleCredential,
+} from "@pricava/react-native-google-credential";
+
 import { auth } from "@/src/config/firebase";
-import apiClient, { endpoints } from '@/src/config/api';
-import { UserCreate, UserRead } from '@/src/types/api';
 
 
-export const signInWithGoogleWeb = async (): Promise<User> => {
-  const provider = new GoogleAuthProvider();
-  const userCredential = await signInWithPopup(auth, provider);
-  const user = userCredential.user;
+export const signInWithGoogleWeb = async () => {
 
-  // Check if user exists in backend, if not create
   try {
-    await apiClient.get<UserRead>(endpoints.users.me);
-  } catch (error: any) {
-    if (error.response?.status === 404) {
-      // User doesn't exist in backend, create
-      const userData: UserCreate = {
-        name: user.displayName || 'User',
-        email: user.email!,
-        currency: 'USD',
-      };
-      await apiClient.post<UserRead>(endpoints.users.register, userData);
-    }
-  }
 
-  return user;
+    const credential =
+      await signInWithGoogleCredential({
+        webClientId:
+          process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID!,
+      });
+
+
+    if (!credential.idToken) {
+      throw new Error(
+        "Google ID token missing"
+      );
+    }
+
+
+    const firebaseCredential =
+      GoogleAuthProvider.credential(
+        credential.idToken
+      );
+
+
+    const result =
+      await signInWithCredential(
+        auth,
+        firebaseCredential
+      );
+
+
+    return result.user;
+
+
+  } catch(error:any) {
+
+    console.error(
+      "Web Google login error:",
+      error
+    );
+
+    throw error;
+  }
 };

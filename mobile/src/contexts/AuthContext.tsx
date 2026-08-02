@@ -27,7 +27,7 @@ export const AuthProvider: React.FC<{
 
   const [error, setError] = useState<string | null>(null);
 
-  const { signInGoogle: googleSignIn } = useGoogleAuth();
+  const { signInGoogle: googleLogin } = useGoogleAuth();
 
   /**
    * Listen to Firebase authentication state
@@ -105,23 +105,33 @@ export const AuthProvider: React.FC<{
    *   Expo AuthSession + Firebase credential
    */
   const signInGoogle = async () => {
-    try {
-      setError(null);
-      setLoading(true);
 
-      await googleSignIn();
+  try {
 
-      // user state updates through onAuthStateChanged
-    } catch (err: any) {
-      const errorMessage = err.message || "Failed to sign in with Google";
+    setError(null);
+    setLoading(true);
 
-      setError(errorMessage);
+    const user =
+      await googleLogin();
 
-      throw new Error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  };
+    setUser(user);
+
+  } catch(err:any) {
+
+    const errorMessage =
+      err.message ||
+      "Failed to sign in with Google";
+
+    setError(errorMessage);
+
+    throw new Error(errorMessage);
+
+  } finally {
+
+    setLoading(false);
+
+  }
+};
 
   /**
    * Logout

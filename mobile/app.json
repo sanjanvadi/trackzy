@@ -34,10 +34,17 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-web-browser"
+      "expo-web-browser",
+      "@pricava/react-native-google-credential/app.plugin"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f8421227-93fd-444b-9f8c-9bf8463bf4d3"
+      }
     }
   }
 }

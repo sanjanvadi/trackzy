@@ -1,26 +1,56 @@
 import {
   GoogleAuthProvider,
   signInWithCredential,
-  User,
 } from "firebase/auth";
+
+import {
+  signInWithGoogleCredential,
+} from "@pricava/react-native-google-credential";
 
 import { auth } from "@/src/config/firebase";
 
 
-export const signInWithGoogleNative = async (
-  idToken: string
-): Promise<User> => {
+export const signInWithGoogleNative = async () => {
 
-  const credential =
-    GoogleAuthProvider.credential(idToken);
+  try {
+
+    const credential =
+      await signInWithGoogleCredential({
+        webClientId:
+          process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID!,
+      });
 
 
-  const result =
-    await signInWithCredential(
-      auth,
-      credential
+    if (!credential.idToken) {
+      throw new Error(
+        "Google ID token missing"
+      );
+    }
+
+
+    const firebaseCredential =
+      GoogleAuthProvider.credential(
+        credential.idToken
+      );
+
+
+    const result =
+      await signInWithCredential(
+        auth,
+        firebaseCredential
+      );
+
+
+    return result.user;
+
+
+  } catch(error:any) {
+
+    console.error(
+      "Native Google login error:",
+      error
     );
 
-
-  return result.user;
+    throw error;
+  }
 };

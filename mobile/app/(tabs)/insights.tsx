@@ -24,9 +24,9 @@ export default function InsightsScreen() {
 
   // Prepare chart data
   const categoryData = summary?.breakdown?.map((item) => ({
-    x: categoryLabels[item.category],
+    x: categoryLabels[item.category as keyof typeof categoryLabels],
     y: item.total,
-    color: categoryColors[item.category],
+    color: categoryColors[item.category as keyof typeof categoryColors],
     percentage: summary.total > 0 ? ((item.total / summary.total) * 100).toFixed(0) : '0',
   })) || [];
 
