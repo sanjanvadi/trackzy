@@ -35,6 +35,7 @@ export const getExpenseSummary = async (
     endpoints.expenses.summary(ledgerId),
     { params }
   );
+  console.log(response.data);
   return response.data;
 };
 

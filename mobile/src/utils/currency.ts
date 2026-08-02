@@ -47,6 +47,7 @@ export const formatCurrency = (
   } = options || {};
 
   const symbol = getCurrencySymbol(currency);
+  amount = Number(amount);
 
   // Compact format for large numbers (e.g., "1.2K", "3.5M")
   if (compact && amount >= 1000) {

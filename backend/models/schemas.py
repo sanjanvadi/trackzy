@@ -8,11 +8,20 @@ Intent   = Literal["add_expense", "edit_expense", "delete_expense", "query_expen
 Period   = Literal["today", "this_week", "this_month", "last_month", "all"]
 
 class BaseSchema(BaseModel):
-    pass
+    model_config = ConfigDict(
+        json_encoders={
+            Decimal: float
+        }
+    )
 
 
 class BaseReadSchema(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_encoders={
+            Decimal: float
+        }
+    )
 
 
 # ── Embedding type with dimension validation ──────────────────────────────────
@@ -116,12 +125,12 @@ class ExpenseRead(ExpenseBase, BaseReadSchema):
 
 # ── Summary / reporting ────────────────────────────────────────────────────────
 
-class CategoryBreakdown(BaseModel):
+class CategoryBreakdown(BaseSchema):
     category: str
-    total:    float
+    total:    Decimal
     count:    int
 
-class ExpenseSummary(BaseModel):
+class ExpenseSummary(BaseSchema):
     period:    str
     total:     Decimal
     count:     int
@@ -130,7 +139,7 @@ class ExpenseSummary(BaseModel):
 
 # ── LLM tool input ─────────────────────────────────────────────────────────────
 
-class ExpenseToolInput(BaseModel):
+class ExpenseToolInput(BaseSchema):
     expense_id:  Optional[str]      = None
     ledger_name: Optional[str]      = None
     amount:      Optional[Decimal]    = None
@@ -139,14 +148,14 @@ class ExpenseToolInput(BaseModel):
     date:        Optional[Date]      = None
     period:      Optional[str]   = None
 
-class IntentResponse(BaseModel):
+class IntentResponse(BaseSchema):
     intent:         Intent
     tool_input:     ExpenseToolInput
     raw_transcript: str
 
 # ── Voice API response ─────────────────────────────────────────────────────────
 
-class VoiceParseResponse(BaseModel):
+class VoiceParseResponse(BaseSchema):
     intent:     Intent
     ledger_id:  Optional[str]            = None
     message:    str

@@ -195,19 +195,73 @@ class Intent(str, Enum):
     UNKNOWN = "unknown"
 
 ADD_KEYWORDS = {
-    "add", "paid", "spent", "bought", "purchase", "ordered", "got", "had", "lent", "gave"
+    "add",
+    "added",
+    "spent",
+    "spend",
+    "paid",
+    "pay",
+    "bought",
+    "buy",
+    "purchase",
+    "purchased",
+    "ordered",
+    "booked",
+    "charged",
+    "cost me",
+    "paid for",
+    "spent on",
+    "bought for",
+    "sent",
+    "transferred",
+    "lent",
+    "gave"
 }
 
 EDIT_KEYWORDS = {
-    "change", "update", "edit", "fix", "correct", "instead", "make it", "modify"
+    "change the",
+    "change my",
+    "update the",
+    "update my",
+    "edit the",
+    "edit my",
+    "modify the",
+    "modify my",
+    "correct the",
+    "correct my",
+    "fix the amount",
+    "fix the category",
+    "fix the date",
+    "make it",
+    "set it to",
+    "replace with",
+    "rename"
 }
 
 DELETE_KEYWORDS = {
-    "delete", "remove", "undo", "cancel", "erase"
+    "delete",
+    "remove",
+    "undo",
+    "cancel",
+    "erase",
+    "discard",
+    "clear"
 }
 
 QUERY_KEYWORDS = {
-    "how much", "total", "summary", "show me", "what did i spend", "spent today"
+    "how much",
+    "total",
+    "summary",
+    "summarize",
+    "show me",
+    "show my",
+    "what did i spend",
+    "where did i spend",
+    "list my expenses",
+    "find my expenses",
+    "search expenses",
+    "expenses for",
+    "spending for"
 }
 
 def preclassify_intent(text: str) -> Intent:
@@ -221,13 +275,13 @@ def preclassify_intent(text: str) -> Intent:
     if any(k in text for k in QUERY_KEYWORDS):
         return Intent.QUERY
 
-    # 3. EDIT (must be explicit correction language)
-    if any(k in text for k in EDIT_KEYWORDS):
-        return Intent.EDIT
-
-    # 4. ADD (important rule: amount + context strongly biases ADD)
+    # 3. ADD (important rule: amount + context strongly biases ADD)
     if any(k in text for k in ADD_KEYWORDS):
         return Intent.ADD
+
+    # 4. EDIT (must be explicit correction language)
+    if any(k in text for k in EDIT_KEYWORDS):
+        return Intent.EDIT
 
     return Intent.UNKNOWN
 

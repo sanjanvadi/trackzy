@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -10,38 +10,54 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
-import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '@/src/constants/theme';
-import { useAuth } from '@/src/contexts/AuthContext';
-import { isValidEmail } from '@/src/utils/validation';
+} from "react-native";
+
+import { useRouter } from "expo-router";
+import { Feather } from "@expo/vector-icons";
+
+import {
+  COLORS,
+  TYPOGRAPHY,
+  SPACING,
+  BORDER_RADIUS,
+} from "@/src/constants/theme";
+
+import { useAuth } from "@/src/contexts/AuthContext";
+import { isValidEmail } from "@/src/utils/validation";
 
 export default function LoginScreen() {
   const router = useRouter();
+
   const { signIn, signInGoogle, forgotPassword } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
   const [showPassword, setShowPassword] = useState(false);
+
   const [isLoading, setIsLoading] = useState(false);
+
+  // Input references
+  const emailInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInput>(null);
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert("Error", "Please fill in all fields");
       return;
     }
 
     if (!isValidEmail(email)) {
-      Alert.alert('Error', 'Please enter a valid email address');
+      Alert.alert("Error", "Please enter a valid email address");
       return;
     }
 
     try {
       setIsLoading(true);
+
       await signIn(email, password);
-      // Navigation handled by RootLayout based on auth state
     } catch (error: any) {
-      Alert.alert('Login Failed', error.message || 'Failed to sign in');
+      Alert.alert("Login Failed", error.message || "Failed to sign in");
     } finally {
       setIsLoading(false);
     }
@@ -50,10 +66,13 @@ export default function LoginScreen() {
   const handleGoogleLogin = async () => {
     try {
       setIsLoading(true);
+
       await signInGoogle();
-      // Navigation handled by RootLayout based on auth state
     } catch (error: any) {
-      Alert.alert('Login Failed', error.message || 'Failed to sign in with Google');
+      Alert.alert(
+        "Login Failed",
+        error.message || "Failed to sign in with Google"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -61,118 +80,138 @@ export default function LoginScreen() {
 
   const handleForgotPassword = () => {
     if (!email) {
-      Alert.alert('Enter Email', 'Please enter your email address first');
+      Alert.alert("Enter Email", "Please enter your email address first");
+
       return;
     }
 
-    Alert.alert(
-      'Reset Password',
-      `Send password reset email to ${email}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Send',
-          onPress: async () => {
-            try {
-              await forgotPassword(email);
-              Alert.alert('Success', 'Password reset email sent! Check your inbox.');
-            } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to send reset email');
-            }
-          },
+    Alert.alert("Reset Password", `Send password reset email to ${email}?`, [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+
+      {
+        text: "Send",
+
+        onPress: async () => {
+          try {
+            await forgotPassword(email);
+
+            Alert.alert(
+              "Success",
+              "Password reset email sent! Check your inbox."
+            );
+          } catch (error: any) {
+            Alert.alert("Error", error.message || "Failed to send reset email");
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleCreateAccount = () => {
-    router.push('/(auth)/signup');
+    router.push("/(auth)/signup");
   };
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header */}
         <View style={styles.header}>
           <View style={styles.iconContainer}>
             <Feather name="shield" size={32} color={COLORS.textPrimary} />
           </View>
+
           <Text style={styles.title}>Trackzy</Text>
+
           <Text style={styles.subtitle}>
-            Secure access to your trusted{'\n'}expense tracker.
+            Secure access to your trusted{"\n"}
+            expense tracker.
           </Text>
         </View>
 
-        {/* Form */}
         <View style={styles.form}>
-          {/* Email Input */}
+          {/* EMAIL */}
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email Address</Text>
-            <View style={styles.inputWrapper}>
-              <Feather
-                name="mail"
-                size={20}
-                color={COLORS.textSecondary}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="you@example.com"
-                placeholderTextColor={COLORS.textTertiary}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-              />
-            </View>
+
+            <Pressable onPress={() => emailInputRef.current?.focus()}>
+              <View style={styles.inputWrapper}>
+                <Feather
+                  name="mail"
+                  size={20}
+                  color={COLORS.textSecondary}
+                  style={styles.inputIcon}
+                />
+
+                <TextInput
+                  ref={emailInputRef}
+                  style={styles.input}
+                  placeholder="you@example.com"
+                  placeholderTextColor={COLORS.textTertiary}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                />
+              </View>
+            </Pressable>
           </View>
 
-          {/* Password Input */}
+          {/* PASSWORD */}
+
           <View style={styles.inputGroup}>
             <View style={styles.labelRow}>
               <Text style={styles.label}>Password</Text>
+
               <Pressable onPress={handleForgotPassword}>
                 <Text style={styles.forgotText}>Forgot password?</Text>
               </Pressable>
             </View>
-            <View style={styles.inputWrapper}>
-              <Feather
-                name="lock"
-                size={20}
-                color={COLORS.textSecondary}
-                style={styles.inputIcon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="••••••••"
-                placeholderTextColor={COLORS.textTertiary}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoComplete="password"
-              />
-              <Pressable
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeIcon}
-              >
+
+            <Pressable onPress={() => passwordInputRef.current?.focus()}>
+              <View style={styles.inputWrapper}>
                 <Feather
-                  name={showPassword ? 'eye' : 'eye-off'}
+                  name="lock"
                   size={20}
                   color={COLORS.textSecondary}
+                  style={styles.inputIcon}
                 />
-              </Pressable>
-            </View>
+
+                <TextInput
+                  ref={passwordInputRef}
+                  style={styles.input}
+                  placeholder="••••••••"
+                  placeholderTextColor={COLORS.textTertiary}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoComplete="password"
+                />
+
+                <Pressable
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeIcon}
+                >
+                  <Feather
+                    name={showPassword ? "eye" : "eye-off"}
+                    size={20}
+                    color={COLORS.textSecondary}
+                  />
+                </Pressable>
+              </View>
+            </Pressable>
           </View>
 
-          {/* Login Button */}
           <Pressable
             style={[styles.loginButton, isLoading && styles.buttonDisabled]}
             onPress={handleLogin}
@@ -185,27 +224,28 @@ export default function LoginScreen() {
             )}
           </Pressable>
 
-          {/* Divider */}
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
+
             <Text style={styles.dividerText}>OR CONTINUE WITH</Text>
+
             <View style={styles.dividerLine} />
           </View>
 
-          {/* Google Sign In */}
           <Pressable
             style={[styles.googleButton, isLoading && styles.buttonDisabled]}
             onPress={handleGoogleLogin}
             disabled={isLoading}
           >
             <Feather name="chrome" size={20} color="#4285F4" />
+
             <Text style={styles.googleButtonText}>Google</Text>
           </Pressable>
         </View>
 
-        {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Don't have an account? </Text>
+          <Text style={styles.footerText}>Don't have an account?</Text>
+
           <Pressable onPress={handleCreateAccount}>
             <Text style={styles.createAccountText}>Create an account</Text>
           </Pressable>
@@ -291,7 +331,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: TYPOGRAPHY.fontSize.body,
     color: COLORS.textPrimary,
-    paddingVertical: 0,
+    paddingVertical: 12,
   },
   eyeIcon: {
     padding: SPACING.xs,

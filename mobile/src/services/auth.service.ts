@@ -60,7 +60,7 @@ export const signInWithEmail = async (
 
 /**
  * Sign in with Google
- */
+ 
 export const signInWithGoogle = async (): Promise<User> => {
   const provider = new GoogleAuthProvider();
   const userCredential = await signInWithPopup(auth, provider);
@@ -83,7 +83,7 @@ export const signInWithGoogle = async (): Promise<User> => {
 
   return user;
 };
-
+*/
 /**
  * Sign out
  */

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -27,6 +27,11 @@ export default function SignupScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  const nameRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
 
   const handleSignup = async () => {
     if (!name || !email || !password || !confirmPassword) {
@@ -57,6 +62,17 @@ export default function SignupScreen() {
     try {
       setIsLoading(true);
       await signUp(name, email, password);
+
+      Alert.alert(
+        "Account Created",
+        "Your account has been created. Please login.",
+        [
+          {
+            text: "OK",
+            onPress: () => router.replace("/(auth)/login"),
+          },
+        ]
+      );
       // Navigation handled by RootLayout based on auth state
     } catch (error: any) {
       Alert.alert('Signup Failed', error.message || 'Failed to create account');
@@ -104,16 +120,23 @@ export default function SignupScreen() {
         {/* Form */}
         <View style={styles.form}>
           {/* Name Input */}
+          {/* Name Input */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Full Name</Text>
-            <View style={styles.inputWrapper}>
+
+            <Pressable
+              style={styles.inputWrapper}
+              onPress={() => nameRef.current?.focus()}
+            >
               <Feather
                 name="user"
                 size={20}
                 color={COLORS.textSecondary}
                 style={styles.inputIcon}
               />
+
               <TextInput
+                ref={nameRef}
                 style={styles.input}
                 placeholder="John Doe"
                 placeholderTextColor={COLORS.textTertiary}
@@ -122,20 +145,26 @@ export default function SignupScreen() {
                 autoCapitalize="words"
                 autoComplete="name"
               />
-            </View>
+            </Pressable>
           </View>
 
           {/* Email Input */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email Address</Text>
-            <View style={styles.inputWrapper}>
+
+            <Pressable
+              style={styles.inputWrapper}
+              onPress={() => emailRef.current?.focus()}
+            >
               <Feather
                 name="mail"
                 size={20}
                 color={COLORS.textSecondary}
                 style={styles.inputIcon}
               />
+
               <TextInput
+                ref={emailRef}
                 style={styles.input}
                 placeholder="you@example.com"
                 placeholderTextColor={COLORS.textTertiary}
@@ -145,20 +174,26 @@ export default function SignupScreen() {
                 autoCapitalize="none"
                 autoComplete="email"
               />
-            </View>
+            </Pressable>
           </View>
 
           {/* Password Input */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Password</Text>
-            <View style={styles.inputWrapper}>
+
+            <Pressable
+              style={styles.inputWrapper}
+              onPress={() => passwordRef.current?.focus()}
+            >
               <Feather
                 name="lock"
                 size={20}
                 color={COLORS.textSecondary}
                 style={styles.inputIcon}
               />
+
               <TextInput
+                ref={passwordRef}
                 style={styles.input}
                 placeholder="••••••••"
                 placeholderTextColor={COLORS.textTertiary}
@@ -168,8 +203,12 @@ export default function SignupScreen() {
                 autoCapitalize="none"
                 autoComplete="password"
               />
+
               <Pressable
-                onPress={() => setShowPassword(!showPassword)}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  setShowPassword(!showPassword);
+                }}
                 style={styles.eyeIcon}
               >
                 <Feather
@@ -178,13 +217,13 @@ export default function SignupScreen() {
                   color={COLORS.textSecondary}
                 />
               </Pressable>
-            </View>
+            </Pressable>
           </View>
 
           {/* Confirm Password Input */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Confirm Password</Text>
-            <View style={styles.inputWrapper}>
+            <Pressable style={styles.inputWrapper} onPress={() => confirmPasswordRef.current?.focus()}>
               <Feather
                 name="lock"
                 size={20}
@@ -192,6 +231,7 @@ export default function SignupScreen() {
                 style={styles.inputIcon}
               />
               <TextInput
+                ref={confirmPasswordRef}
                 style={styles.input}
                 placeholder="••••••••"
                 placeholderTextColor={COLORS.textTertiary}
@@ -211,7 +251,7 @@ export default function SignupScreen() {
                   color={COLORS.textSecondary}
                 />
               </Pressable>
-            </View>
+            </Pressable>
           </View>
 
           {/* Sign Up Button */}
@@ -314,6 +354,7 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     paddingHorizontal: SPACING.md,
     height: 56,
+    paddingVertical: 10,
   },
   inputIcon: {
     marginRight: SPACING.sm,

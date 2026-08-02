@@ -1,6 +1,7 @@
 {
   "expo": {
     "name": "Trackzy",
+    "owner": "sanjanv",
     "slug": "trackzy",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -32,7 +33,8 @@
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

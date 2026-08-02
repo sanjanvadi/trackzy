@@ -1,6 +1,7 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "strict": true,
     "jsx": "react-native",
     "baseUrl": ".",
@@ -11,7 +12,6 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
-    "moduleResolution": "node"
   },
   "include": [
     "**/*.ts",

@@ -3,6 +3,7 @@ os.environ.setdefault("HF_HOME", "/tmp/huggingface")
 
 import asyncio
 from datetime import datetime, date as Date, timedelta
+from decimal import Decimal
 
 from sqlalchemy import select, update, Float, func, cast
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -842,16 +843,15 @@ async def get_expense_summary(
         # Aggregate totals
         # ─────────────────────────────────────────────────────────────
 
-        totals: dict[str, float] = {}
+        totals: dict[str, Decimal] = {}
         counts: dict[str, int] = {}
 
         for expense in expenses:
 
-            totals[expense.category] = round(
-                totals.get(expense.category, 0)
-                + expense.amount,
-                2
-            )
+            totals[expense.category] = (
+                totals.get(expense.category, Decimal("0"))
+                + expense.amount
+            ).quantize(Decimal("0.01"))
 
             counts[expense.category] = (
                 counts.get(expense.category, 0)
@@ -881,7 +881,7 @@ async def get_expense_summary(
 
         return ExpenseSummary(
             period=period,
-            total=round(sum(totals.values()), 2),
+            total=sum(totals.values(), Decimal("0")).quantize(Decimal("0.01")),
             count=len(expenses),
             currency=currency,
             breakdown=breakdown,
