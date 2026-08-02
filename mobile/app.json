@@ -35,7 +35,8 @@
       "expo-router",
       "expo-secure-store",
       "expo-web-browser",
-      "@pricava/react-native-google-credential/app.plugin"
+      "@pricava/react-native-google-credential/app.plugin",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
