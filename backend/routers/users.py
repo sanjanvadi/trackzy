@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.database import get_db
 from middleware.auth import get_current_uid
 from models.schemas import UserCreate, UserUpdate, UserRead
-from services.db_service import get_user, create_or_update_user, delete_user
+from services.db_service import get_user, create_user, update_user, delete_user
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -21,10 +21,10 @@ async def register_user(
     UID always comes from the verified Firebase token — never the request body.
     """
     try:
-        user = await create_or_update_user(db, uid, payload.model_dump())
+        user = await create_user(db, uid, payload.model_dump())
         return user
     except Exception as e:
-        raise HTTPException(status_code=404, detail=f"User Already exists.{e}")
+        raise HTTPException(status_code=400, detail=f"User already exists: {e}")
 
 
 @router.get("/me", response_model=UserRead)
@@ -48,10 +48,10 @@ async def update_profile(
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
 
-    updates = {k: v for k, v in payload.model_dump().items() if v is not None}
+    updates = {k: v for k, v in payload.model_dump(exclude_unset=True).items() if v is not None}
     if updates:
-        from services.db_service import create_or_update_user
-        user = await create_or_update_user(db, uid, updates)
+        # from services.db_service import create_or_update_user
+        user = await update_user(db, uid, updates)
     return user
 
 

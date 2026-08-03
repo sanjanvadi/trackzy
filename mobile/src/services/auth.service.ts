@@ -11,8 +11,7 @@ import {
   User,
 } from 'firebase/auth';
 import { auth } from '@/src/config/firebase';
-import apiClient, { endpoints } from '@/src/config/api';
-import { UserCreate, UserRead } from '@/src/types/api';
+import { syncUserWithBackend } from "@/src/services/user.service";
 
 /**
  * Sign up with email and password
@@ -22,27 +21,24 @@ export const signUpWithEmail = async (
   email: string,
   password: string
 ): Promise<User> => {
-  // Create Firebase user
-  const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+  const userCredential =
+    await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+
   const user = userCredential.user;
 
-  // Update display name
-  await updateProfile(user, { displayName: name });
 
-  // Create user in backend
-  const userData: UserCreate = {
-    name,
-    email,
-    currency: 'USD',
-  };
+  await updateProfile(user, {
+    displayName: name,
+  });
 
-  try {
-    await apiClient.post<UserRead>(endpoints.users.register, userData);
-    console.log('User created in backend:', email);
-  } catch (error) {
-    console.error('Failed to create user in backend:', error);
-    // Don't throw - user is created in Firebase, backend sync can retry later
-  }
+
+  await syncUserWithBackend(user);
+
 
   return user;
 };

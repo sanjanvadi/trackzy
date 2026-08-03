@@ -39,7 +39,7 @@ async def update_ledger_endpoint(
     db:        AsyncSession = Depends(get_db),
 ):
     """Rename a ledger or change its icon."""
-    updates = {k: v for k, v in payload.model_dump().items() if v is not None}
+    updates = {k: v for k, v in payload.model_dump(exclude_unset=True).items() if v is not None}
     return await update_ledger(db, uid, ledger_id, updates)
 
 

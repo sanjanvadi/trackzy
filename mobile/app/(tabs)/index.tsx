@@ -10,6 +10,8 @@ import { useDefaultLedger } from '@/src/hooks/useLedgers';
 import { useExpenses, useExpenseSummary } from '@/src/hooks/useExpenses';
 import { categoryIcons, categoryColors, categoryBackgroundColors } from '@/src/constants/categories';
 import { Category } from '@/src/types/api';
+import LedgerSelector from '../components/LedgerSelector';
+import { useLedger } from '@/src/contexts/LedgerContext';
 
 // Category icon mapping for Feather icons
 const getCategoryIcon = (category: Category): string => {
@@ -32,17 +34,17 @@ export default function DashboardScreen() {
   const { colors, isDark, toggleTheme } = useTheme();
 
   // Fetch default ledger
-  const { data: defaultLedger, isLoading: ledgerLoading } = useDefaultLedger();
+  const { selectedLedger, loading: ledgerLoading } = useLedger();
 
   // Fetch expenses and summary for default ledger
   const { data: expenses, isLoading: expensesLoading } = useExpenses(
-    defaultLedger?.id || '',
+    selectedLedger?.id || '',
     { page: 1, per_page: 5 } // Get recent 5 transactions
   );
 
   const { data: summary, isLoading: summaryLoading } = useExpenseSummary(
-    defaultLedger?.id || '',
-    { period: 'this_month' }
+    selectedLedger?.id || '',
+    { period: 'all' }
   );
 
   const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long' });
@@ -52,8 +54,7 @@ export default function DashboardScreen() {
   };
 
   const handleViewAll = () => {
-    // TODO: Navigate to history tab
-    console.log('View all transactions');
+    router.push('/(tabs)/history')
   };
 
   const isLoading = ledgerLoading || expensesLoading || summaryLoading;
@@ -75,7 +76,7 @@ export default function DashboardScreen() {
       >
         {/* Budget Card */}
         <View style={styles.budgetCard}>
-          <Text style={styles.budgetLabel}>{currentMonth} Budget</Text>
+          <Text style={styles.budgetLabel}>{currentMonth} Expenses</Text>
           {isLoading ? (
             <ActivityIndicator size="large" color={COLORS.primary} style={{ marginVertical: SPACING.lg }} />
           ) : (
@@ -83,20 +84,6 @@ export default function DashboardScreen() {
               <Text style={styles.budgetAmount}>
                 {formatCurrency(summary?.total || 0, summary?.currency || 'USD')}
               </Text>
-              <View style={styles.budgetIndicators}>
-                <View style={styles.indicator}>
-                  <Feather name="arrow-up" size={16} color={COLORS.primary} />
-                  <Text style={[styles.indicatorText, { color: COLORS.primary }]}>
-                    Income
-                  </Text>
-                </View>
-                <View style={styles.indicator}>
-                  <Feather name="arrow-down" size={16} color={COLORS.error} />
-                  <Text style={[styles.indicatorText, { color: COLORS.error }]}>
-                    Spent
-                  </Text>
-                </View>
-              </View>
             </>
           )}
         </View>
@@ -104,7 +91,7 @@ export default function DashboardScreen() {
         {/* Recent Transactions */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent Transactions</Text>
+            <LedgerSelector />
             <Pressable onPress={handleViewAll}>
               <Text style={styles.viewAllText}>View All</Text>
             </Pressable>

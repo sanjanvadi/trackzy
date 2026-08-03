@@ -48,40 +48,41 @@ async def get_user(db: AsyncSession, uid: str) -> User | None:
             detail="Could not fetch user"
         )
     
-async def create_or_update_user(
+async def create_user(
     db: AsyncSession,
     uid: str,
     data: dict
 ) -> User:
+    """
+    Creates a new user and default ledgers.
+    Called only on first login/signup.
+    """
 
-    try:
-        result = await db.execute(
-            select(User).where(User.id == uid)
+    existing_user = await get_user(db, uid)
+    if existing_user:
+        raise HTTPException(
+            status_code=400,
+            detail="User already exists"
         )
 
-        user = result.scalar_one_or_none()
+    try:
+        user = User(
+            id=uid,
+            **data
+        )
 
-        # UPDATE EXISTING USER
-        if user:
-            for k, v in data.items():
-                if v is not None and hasattr(user, k):
-                    setattr(user, k, v)
+        db.add(user)
 
-        # CREATE NEW USER
-        else:
-            user = User(id=uid, **data)
+        await db.flush()
 
-            db.add(user)
+        # Create default ledgers
+        for ledger_data in DEFAULT_LEDGERS:
+            ledger = Ledger(
+                user_id=uid,
+                **ledger_data
+            )
 
-            await db.flush()
-
-            # Create default ledgers
-            for l in DEFAULT_LEDGERS:
-                ledger = Ledger(
-                    user_id=uid,
-                    **l
-                )
-                db.add(ledger)
+            db.add(ledger)
 
         await db.commit()
         await db.refresh(user)
@@ -95,7 +96,52 @@ async def create_or_update_user(
 
         raise HTTPException(
             status_code=500,
-            detail="Could not create/update user"
+            detail="Could not create user"
+        )
+
+async def update_user(
+    db: AsyncSession,
+    uid: str,
+    data: dict
+) -> User:
+    """
+    Updates existing user profile fields.
+    Called only through PATCH /users/me.
+    """
+
+    try:
+        result = await db.execute(
+            select(User).where(User.id == uid)
+        )
+
+        user = result.scalar_one_or_none()
+
+        if not user:
+            raise HTTPException(
+                status_code=404,
+                detail="User not found"
+            )
+
+        for key, value in data.items():
+            if value is not None and hasattr(user, key):
+                setattr(user, key, value)
+
+        await db.commit()
+        await db.refresh(user)
+
+        return user
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        await db.rollback()
+
+        logger.exception(e)
+
+        raise HTTPException(
+            status_code=500,
+            detail="Could not update user"
         )
 
 async def delete_user(

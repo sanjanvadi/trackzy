@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '@/src/constants/theme';
+import { completeOnboarding } from "@/src/services/onboarding.service";
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -12,17 +13,19 @@ export default function OnboardingScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const [currentPage, setCurrentPage] = useState(0);
 
-  const handleSkip = () => {
-    router.push('/(auth)/login');
+  const handleSkip = async () => {
+    await completeOnboarding();
+    router.replace("/(auth)/login");
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentPage < 2) {
       const nextPage = currentPage + 1;
       scrollViewRef.current?.scrollTo({ x: nextPage * SCREEN_WIDTH, animated: true });
       setCurrentPage(nextPage);
     } else {
-      router.push('/(auth)/login');
+      await completeOnboarding();
+      router.replace("/(auth)/login");
     }
   };
 

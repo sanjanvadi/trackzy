@@ -150,14 +150,12 @@ export default function VoiceRecordingScreen() {
         return;
       }
 
-      console.log('Recording saved to:', uri);
       setIsProcessing(true);
       setTranscription('Processing...');
 
       // Upload audio to backend and parse
       parseVoiceMutation.mutate(uri, {
         onSuccess: (data) => {
-          console.log('Voice parsed successfully:', data);
           setIsProcessing(false);
 
           // Invalidate queries to refresh data across the app

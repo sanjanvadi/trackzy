@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert, Switch, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Alert, Switch, ScrollView, Platform } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { useTheme } from '@/src/contexts/ThemeContext';
@@ -11,24 +11,39 @@ export default function ProfileScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   const handleSignOut = () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await signOut();
-            } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to sign out');
-            }
-          },
-        },
-      ]
-    );
+    const confirmSignOut = async () => {
+      try {
+        await signOut();
+      } catch (error: any) {
+        if (Platform.OS === "web") {
+          window.alert(error.message || "Failed to sign out");
+        } else {
+          Alert.alert("Error", error.message || "Failed to sign out");
+        }
+      }
+    };
+
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm("Are you sure you want to sign out?");
+
+      if (confirmed) {
+        confirmSignOut();
+      }
+
+      return;
+    }
+
+    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Sign Out",
+        style: "destructive",
+        onPress: confirmSignOut,
+      },
+    ]);
   };
 
   const handleEditProfile = () => {

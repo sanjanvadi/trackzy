@@ -1,5 +1,11 @@
+import { hasCompletedOnboarding } from '@/src/services/onboarding.service';
 import { Redirect } from 'expo-router';
 
-export default function Index() {
-  return <Redirect href="/(auth)/onboarding" />;
+export default async function Index() {
+  const completedOnboarding = await hasCompletedOnboarding();
+  if (completedOnboarding) {
+    return <Redirect href="/(auth)/login" />;
+  }else{
+    return <Redirect href="/(auth)/onboarding" />;
+  }
 }

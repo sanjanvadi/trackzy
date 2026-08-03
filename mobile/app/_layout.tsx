@@ -6,6 +6,8 @@ import { AuthProvider, useAuth } from '@/src/contexts/AuthContext';
 import { ThemeProvider } from '@/src/contexts/ThemeContext';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { COLORS } from '@/src/constants/theme';
+import { hasCompletedOnboarding } from '@/src/services/onboarding.service';
+import { LedgerProvider } from '@/src/contexts/LedgerContext';
 
 function RootLayoutNav() {
   const { user, loading } = useAuth();
@@ -13,17 +15,32 @@ function RootLayoutNav() {
   const segments = useSegments();
 
   useEffect(() => {
-    if (loading) return;
+    const redirect = async () => {
 
-    const inAuthGroup = segments[0] === '(auth)';
+      if (loading) return;
 
-    if (!user && !inAuthGroup) {
-      // User not authenticated, redirect to onboarding
-      router.replace('/(auth)/onboarding');
-    } else if (user && inAuthGroup) {
-      // User authenticated but in auth screens, redirect to main app
-      router.replace('/(tabs)');
-    }
+      const inAuthGroup = segments[0] === "(auth)";
+
+      if (!user && !inAuthGroup) {
+
+        const completed =
+          await hasCompletedOnboarding();
+
+        if (completed) {
+          router.replace("/(auth)/login");
+        } else {
+          router.replace("/(auth)/onboarding");
+        }
+
+      } else if (user && inAuthGroup) {
+
+        router.replace("/(tabs)");
+
+      }
+    };
+
+    redirect();
+
   }, [user, loading, segments]);
 
   if (loading) {
@@ -51,7 +68,9 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
-          <RootLayoutNav />
+          <LedgerProvider>
+            <RootLayoutNav />
+          </LedgerProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
