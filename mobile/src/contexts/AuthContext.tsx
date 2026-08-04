@@ -11,6 +11,7 @@ import {
 import { useGoogleAuth } from "@/src/hooks/useGoogleAuth";
 
 import { AuthContextType } from "@/src/types/auth";
+import { queryClient } from "@/src/config/queryClient";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -141,9 +142,17 @@ export const AuthProvider: React.FC<{
       setError(null);
       setLoading(true);
 
-      await authSignOut();
+      // Immediately disable authenticated queries
+      setUser(null);
 
-      // user becomes null through onAuthStateChanged
+      // Stop active React Query requests
+      await queryClient.cancelQueries();
+
+      // Remove all cached data belonging to the current user
+      queryClient.clear();
+
+      // Finally remove the Firebase session
+      await authSignOut();
     } catch (err: any) {
       const errorMessage = err.message || "Failed to sign out";
 
@@ -179,8 +188,8 @@ export const AuthProvider: React.FC<{
     user,
 
     // expose combined loading state
-    loading: initializing || loading,
-
+    loading,
+    initializing,
     error,
 
     signUp,

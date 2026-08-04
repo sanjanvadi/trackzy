@@ -14,31 +14,48 @@ const apiClient = axios.create({
 });
 
 // Request interceptor - Add Firebase auth token to all requests
+const PUBLIC_ENDPOINTS = [
+  '/health',
+];
+
 apiClient.interceptors.request.use(
   async (config) => {
-    try {
-      const user = auth.currentUser;
+    const isPublicEndpoint =
+      PUBLIC_ENDPOINTS.some((endpoint) =>
+        config.url?.startsWith(endpoint)
+      );
 
-      if (user) {
-        // Get fresh Firebase ID token
-        const token = await user.getIdToken();
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    } catch (error) {
-      console.error('Error getting auth token:', error);
+    if (isPublicEndpoint) {
+      return config;
     }
+
+    const user = auth.currentUser;
+
+    if (!user) {
+      return Promise.reject(
+        new axios.CanceledError(
+          "Authenticated request cancelled after logout"
+        )
+      );
+    }
+
+    const token = await user.getIdToken();
+
+    config.headers.Authorization =
+      `Bearer ${token}`;
 
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 // Response interceptor - Handle errors globally
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
+    if (axios.isCancel(error)) {
+      return Promise.reject(error);
+    }
     if (error.response) {
       const { status, data } = error.response;
 

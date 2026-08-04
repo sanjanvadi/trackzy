@@ -1,5 +1,11 @@
+import { Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import {
+  getAuth,
+  initializeAuth,
+  getReactNativePersistence,
+} from "firebase/auth";
 
 // Firebase configuration from environment variables
 const firebaseConfig = {
@@ -36,12 +42,15 @@ const validateFirebaseConfig = () => {
 validateFirebaseConfig();
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+export const app = initializeApp(firebaseConfig);
 
 // Initialize Auth
-// Note: Firebase JS SDK automatically handles persistence across platforms
-// For React Native, it uses AsyncStorage internally
-// For web, it uses IndexedDB/localStorage
-const auth = getAuth(app);
+export const auth =
+  Platform.OS === "web"
+    ? getAuth(app)
+    : initializeAuth(app, {
+        persistence: getReactNativePersistence(
+          AsyncStorage
+        ),
+      });
 
-export { app, auth };

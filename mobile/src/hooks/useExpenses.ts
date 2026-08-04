@@ -16,16 +16,19 @@ import {
   ExpenseListParams,
   ExpenseSummaryParams,
 } from '@/src/types/api';
+import { useAuth } from '../contexts/AuthContext';
 
 /**
  * Get expenses for a ledger
  */
 export const useExpenses = (ledgerId: string, params?: ExpenseListParams) => {
+  const { user, initializing } = useAuth();
   return useQuery({
     queryKey: queryKeys.expenses.list(ledgerId, params),
     queryFn: () => getExpenses(ledgerId, params),
-    enabled: !!ledgerId,
+    enabled: !!user && !initializing && !!ledgerId,
     staleTime: 2 * 60 * 1000, // 2 minutes
+    retry: false,
   });
 };
 
@@ -36,11 +39,13 @@ export const useExpenseSummary = (
   ledgerId: string,
   params?: ExpenseSummaryParams
 ) => {
+  const { user, initializing } = useAuth();
   return useQuery({
     queryKey: queryKeys.expenses.summary(ledgerId, params),
     queryFn: () => getExpenseSummary(ledgerId, params),
-    enabled: !!ledgerId,
+    enabled: !!user && !initializing && !!ledgerId,
     staleTime: 2 * 60 * 1000,
+    retry: false,
   });
 };
 
@@ -48,10 +53,12 @@ export const useExpenseSummary = (
  * Get single expense
  */
 export const useExpense = (ledgerId: string, expenseId: string) => {
+  const { user, initializing } = useAuth();
   return useQuery({
     queryKey: queryKeys.expenses.detail(ledgerId, expenseId),
     queryFn: () => getExpense(ledgerId, expenseId),
-    enabled: !!ledgerId && !!expenseId,
+    enabled: !!user && !initializing && !!ledgerId && !!expenseId,
+    retry: false,
   });
 };
 

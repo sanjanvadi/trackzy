@@ -17,12 +17,13 @@ import { useAuth } from '../contexts/AuthContext';
  * Get all ledgers
  */
 export const useLedgers = () => {
-  const { user } = useAuth();
+  const { user, initializing } = useAuth();
   return useQuery({
     queryKey: queryKeys.ledgers.lists(),
     queryFn: getLedgers,
-    enabled: !!user,
+    enabled: !!user && !initializing,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: false,
   });
 };
 

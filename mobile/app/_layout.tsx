@@ -10,14 +10,16 @@ import { hasCompletedOnboarding } from '@/src/services/onboarding.service';
 import { LedgerProvider } from '@/src/contexts/LedgerContext';
 
 function RootLayoutNav() {
-  const { user, loading } = useAuth();
+  const { user, initializing } = useAuth();
   const router = useRouter();
   const segments = useSegments();
 
   useEffect(() => {
-    const redirect = async () => {
+    let cancelled = false;
 
-      if (loading) return;
+    const redirect = async () => {
+      if (cancelled) return;
+      if (initializing) return;
 
       const inAuthGroup = segments[0] === "(auth)";
 
@@ -41,9 +43,13 @@ function RootLayoutNav() {
 
     redirect();
 
-  }, [user, loading, segments]);
+    return () => {
+      cancelled = true;
+    };
 
-  if (loading) {
+  }, [user, initializing, segments]);
+
+  if (initializing) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />

@@ -8,6 +8,7 @@ import {
 
 import { LedgerRead } from "@/src/types/api";
 import { useLedgers } from "@/src/hooks/useLedgers";
+import { useAuth } from "./AuthContext";
 
 interface LedgerContextType {
   ledgers: LedgerRead[];
@@ -24,6 +25,9 @@ export function LedgerProvider({
 }: {
   children: ReactNode;
 }) {
+
+  const {user} = useAuth();
+
   const {
     data: ledgers = [],
     isLoading,
@@ -31,6 +35,12 @@ export function LedgerProvider({
 
   const [selectedLedger, setSelectedLedger] =
     useState<LedgerRead | null>(null);
+
+  useEffect(() => {
+    if (!user) {
+      setSelectedLedger(null);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (ledgers.length === 0) {
