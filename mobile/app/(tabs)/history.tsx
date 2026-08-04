@@ -13,12 +13,13 @@ import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/src/contexts/ThemeContext';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '@/src/constants/theme';
-import { useDefaultLedger } from '@/src/hooks/useLedgers';
 import { useExpenses, useExpenseSummary, useDeleteExpense } from '@/src/hooks/useExpenses';
 import { formatCurrency } from '@/src/utils/currency';
 import { getSectionTitle } from '@/src/utils/date';
 import { categoryColors, categoryBackgroundColors, categoryLabels } from '@/src/constants/categories';
 import { ExpenseRead, Category } from '@/src/types/api';
+import { useLedger } from '@/src/contexts/LedgerContext';
+
 
 // Category icon mapping
 const getCategoryIcon = (category: Category): string => {
@@ -40,14 +41,14 @@ export default function HistoryScreen() {
   const { colors, isDark, toggleTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [swipedId, setSwipedId] = useState<string | null>(null);
+  const { selectedLedger } = useLedger();
 
   // Fetch default ledger and expenses
-  const { data: defaultLedger } = useDefaultLedger();
-  const { data: expenses, isLoading } = useExpenses(defaultLedger?.id || '', {
+  const { data: expenses, isLoading } = useExpenses(selectedLedger?.id || '', {
     page: 1,
     per_page: 100, // Fetch more transactions
   });
-  const { data: summary } = useExpenseSummary(defaultLedger?.id || '');
+  const { data: summary } = useExpenseSummary(selectedLedger?.id || '');
 
   const deleteExpenseMutation = useDeleteExpense();
 
@@ -122,7 +123,7 @@ export default function HistoryScreen() {
         {isSwiped && (
           <Pressable
             style={styles.deleteButton}
-            onPress={() => handleDelete(defaultLedger!.id, expense.id, expense.note || '')}
+            onPress={() => handleDelete(selectedLedger!.id, expense.id, expense.note || '')}
           >
             <Feather name="trash-2" size={24} color="#FFFFFF" />
           </Pressable>

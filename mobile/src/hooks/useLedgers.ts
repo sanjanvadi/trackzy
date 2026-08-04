@@ -10,7 +10,7 @@ import {
   setDefaultLedger,
 } from '@/src/services/ledger.service';
 import { queryKeys } from '@/src/config/queryClient';
-import { LedgerCreate, LedgerUpdate } from '@/src/types/api';
+import { LedgerCreate, LedgerRead, LedgerUpdate } from '@/src/types/api';
 import { useAuth } from '../contexts/AuthContext';
 
 /**
@@ -88,8 +88,16 @@ export const useSetDefaultLedger = () => {
 
   return useMutation({
     mutationFn: (id: string) => setDefaultLedger(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.ledgers.all });
+
+    onSuccess: (_response, selectedLedgerId) => {
+      queryClient.setQueryData<LedgerRead[]>(
+        queryKeys.ledgers.lists(),
+        (currentLedgers = []) =>
+          currentLedgers.map((ledger) => ({
+            ...ledger,
+            is_default: ledger.id === selectedLedgerId,
+          }))
+      );
     },
   });
 };
