@@ -1,11 +1,35 @@
-import { hasCompletedOnboarding } from '@/src/services/onboarding.service';
-import { Redirect } from 'expo-router';
+import { useEffect, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
+import { Redirect } from "expo-router";
 
-export default async function Index() {
-  const completedOnboarding = await hasCompletedOnboarding();
-  if (completedOnboarding) {
-    return <Redirect href="/(auth)/login" />;
-  }else{
-    return <Redirect href="/(auth)/onboarding" />;
+import { hasCompletedOnboarding } from "@/src/services/onboarding.service";
+
+export default function Index() {
+  const [completed, setCompleted] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      const result = await hasCompletedOnboarding();
+
+      setCompleted(result);
+    };
+
+    void checkOnboarding();
+  }, []);
+
+  if (completed === null) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <ActivityIndicator />
+      </View>
+    );
   }
+
+  return <Redirect href={completed ? "/(auth)/login" : "/(auth)/onboarding"} />;
 }

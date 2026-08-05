@@ -153,6 +153,9 @@ Category inference:
 - electricity, internet, water, phone bill, rent, recharge → bills
 
 Examples:
+User: "lost 200 in a casino"
+Tool: add_expense({"amount": 200, "category": "entertainment", "note": "casino", "date": "2024-01-15"})
+
 User: "i paid 300 rupees for cab today"
 Tool: add_expense({"amount": 300, "category": "transport", "note": "cab", "date": "2024-01-15"})
 

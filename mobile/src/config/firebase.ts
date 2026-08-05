@@ -1,11 +1,8 @@
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { initializeApp } from 'firebase/app';
-import {
-  getAuth,
-  initializeAuth,
-  getReactNativePersistence,
-} from "firebase/auth";
+import { initializeApp, getApp, getApps } from 'firebase/app';
+// @ts-expect-error - getReactNativePersistence exists at runtime but is untyped in this entry point
+import {Auth,getAuth,initializeAuth,getReactNativePersistence,} from "firebase/auth";
 
 // Firebase configuration from environment variables
 const firebaseConfig = {
@@ -41,16 +38,31 @@ const validateFirebaseConfig = () => {
 // Validate config before initializing
 validateFirebaseConfig();
 
-// Initialize Firebase
-export const app = initializeApp(firebaseConfig);
+const app =
+  getApps().length > 0
+    ? getApp()
+    : initializeApp(firebaseConfig);
 
-// Initialize Auth
-export const auth =
-  Platform.OS === "web"
-    ? getAuth(app)
-    : initializeAuth(app, {
-        persistence: getReactNativePersistence(
-          AsyncStorage
-        ),
-      });
+let auth: Auth;
+
+if (Platform.OS === "web") {
+  auth = getAuth(app);
+} else {
+  try {
+    // This runs on the first native initialization.
+    auth = initializeAuth(app, {
+      persistence:
+        getReactNativePersistence(AsyncStorage),
+    });
+  } catch (error: any) {
+    if (error?.code === "auth/already-initialized") {
+      // Fast Refresh or another module already initialized Auth.
+      auth = getAuth(app);
+    } else {
+      throw error;
+    }
+  }
+}
+
+export { app, auth };
 
