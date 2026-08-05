@@ -15,6 +15,6 @@ import { VoiceParseResponse } from '@/src/types/api';
 export const useParseVoice = () => {
   return useMutation<VoiceParseResponse, Error, string>({
     mutationFn: (audioUri: string) => parseVoiceInput(audioUri),
-    retry: 1, // Retry once on failure
+    retry: false, // No retries
   });
 };

@@ -11,7 +11,7 @@ export const queryClient = new QueryClient({
       gcTime: 1000 * 60 * 10,
 
       // Retry failed requests 2 times before showing error
-      retry: 2,
+      retry: false,
 
       // Retry delay increases exponentially
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -27,7 +27,7 @@ export const queryClient = new QueryClient({
     },
     mutations: {
       // Retry failed mutations once
-      retry: 1,
+      retry: false,
 
       // Don't retry on specific error codes
       retryDelay: 1000,
