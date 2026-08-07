@@ -5,28 +5,10 @@ import { useAuth } from '@/src/contexts/AuthContext';
 import { useTheme } from '@/src/contexts/ThemeContext';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '@/src/constants/theme';
 import { formatCurrency } from '@/src/utils/currency';
-import { formatDate, getRelativeTime } from '@/src/utils/date';
-import { useDefaultLedger } from '@/src/hooks/useLedgers';
 import { useExpenses, useExpenseSummary } from '@/src/hooks/useExpenses';
-import { categoryIcons, categoryColors, categoryBackgroundColors } from '@/src/constants/categories';
-import { Category } from '@/src/types/api';
 import LedgerSelector from '../components/LedgerSelector';
 import { useLedger } from '@/src/contexts/LedgerContext';
-
-// Category icon mapping for Feather icons
-const getCategoryIcon = (category: Category): string => {
-  const iconMap: Record<Category, string> = {
-    food: 'coffee',
-    transport: 'truck',
-    shopping: 'shopping-bag',
-    health: 'heart',
-    entertainment: 'film',
-    bills: 'file-text',
-    grocery: 'shopping-cart',
-    other: 'package',
-  };
-  return iconMap[category] || 'package';
-};
+import ExpenseRow from '../components/Expense';
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -39,7 +21,7 @@ export default function DashboardScreen() {
   // Fetch expenses and summary for default ledger
   const { data: expenses, isLoading: expensesLoading } = useExpenses(
     selectedLedger?.id || '',
-    { page: 1, per_page: 5 } // Get recent 5 transactions
+    { page: 1, per_page: 10 } // Get recent 10 transactions
   );
 
   const { data: summary, isLoading: summaryLoading } = useExpenseSummary(
@@ -101,39 +83,12 @@ export default function DashboardScreen() {
             {isLoading ? (
               <ActivityIndicator size="small" color={COLORS.primary} style={{ marginVertical: SPACING.lg }} />
             ) : expenses && expenses.length > 0 ? (
-              expenses.map((expense) => {
-                const iconName = getCategoryIcon(expense.category);
-                const bgColor = categoryBackgroundColors[expense.category];
-                const iconColor = categoryColors[expense.category];
-
-                return (
-                  <Pressable key={expense.id} style={styles.transactionItem}>
-                    <View
-                      style={[
-                        styles.transactionIcon,
-                        { backgroundColor: bgColor },
-                      ]}
-                    >
-                      <Feather
-                        name={iconName as any}
-                        size={24}
-                        color={iconColor}
-                      />
-                    </View>
-                    <View style={styles.transactionDetails}>
-                      <Text style={styles.transactionName}>
-                        {expense.note || expense.category.charAt(0).toUpperCase() + expense.category.slice(1)}
-                      </Text>
-                      <Text style={styles.transactionDate}>
-                        {getRelativeTime(expense.date)}
-                      </Text>
-                    </View>
-                    <Text style={[styles.transactionAmount, styles.amountNegative]}>
-                      -{formatCurrency(expense.amount, summary?.currency || 'USD')}
-                    </Text>
-                  </Pressable>
-                );
-              })
+              <>
+              <Text style= {[styles.sectionTitle, { textAlign: 'center' ,fontSize: TYPOGRAPHY.fontSize.h4}]}>Recent Expenses</Text>
+              {expenses.map((expense) => (
+                <ExpenseRow key={expense.id} expense={expense} currency={summary?.currency || 'USD'} />
+              ))}
+              </>
             ) : (
               <View style={styles.emptyState}>
                 <Feather name="inbox" size={48} color={COLORS.textTertiary} />
@@ -241,44 +196,6 @@ const styles = StyleSheet.create({
   },
   transactionsList: {
     gap: SPACING.xs,
-  },
-  transactionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING.md,
-    gap: SPACING.md,
-  },
-  transactionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  transactionDetails: {
-    flex: 1,
-  },
-  transactionName: {
-    fontSize: TYPOGRAPHY.fontSize.body,
-    fontWeight: TYPOGRAPHY.fontWeight.semibold,
-    color: COLORS.textPrimary,
-    marginBottom: 2,
-  },
-  transactionDate: {
-    fontSize: TYPOGRAPHY.fontSize.caption,
-    color: COLORS.textSecondary,
-  },
-  transactionAmount: {
-    fontSize: TYPOGRAPHY.fontSize.body,
-    fontWeight: TYPOGRAPHY.fontWeight.bold,
-  },
-  amountPositive: {
-    color: COLORS.success,
-  },
-  amountNegative: {
-    color: COLORS.textPrimary,
   },
   voiceFab: {
     position: 'absolute',

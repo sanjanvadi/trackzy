@@ -19,14 +19,14 @@ export const categoryIcons: Record<Category, string> = {
 
 // Icon names for react-native-vector-icons or @expo/vector-icons
 export const categoryIconNames: Record<Category, string> = {
-  food: 'restaurant',
-  transport: 'car',
+  food: 'coffee',
+  transport: 'truck',
   shopping: 'shopping-bag',
   health: 'heart',
   entertainment: 'film',
   bills: 'file-text',
   grocery: 'shopping-cart',
-  other: 'box',
+  other: 'package',
 };
 
 // ============================================================================

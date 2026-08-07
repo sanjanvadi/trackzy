@@ -16,25 +16,9 @@ import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '@/src/constants/them
 import { useExpenses, useExpenseSummary, useDeleteExpense } from '@/src/hooks/useExpenses';
 import { formatCurrency } from '@/src/utils/currency';
 import { getSectionTitle } from '@/src/utils/date';
-import { categoryColors, categoryBackgroundColors, categoryLabels } from '@/src/constants/categories';
+import { categoryColors, categoryBackgroundColors, categoryLabels,categoryIconNames } from '@/src/constants/categories';
 import { ExpenseRead, Category } from '@/src/types/api';
 import { useLedger } from '@/src/contexts/LedgerContext';
-
-
-// Category icon mapping
-const getCategoryIcon = (category: Category): string => {
-  const iconMap: Record<Category, string> = {
-    food: 'coffee',
-    transport: 'truck',
-    shopping: 'shopping-bag',
-    health: 'heart',
-    entertainment: 'film',
-    bills: 'file-text',
-    grocery: 'shopping-cart',
-    other: 'package',
-  };
-  return iconMap[category] || 'package';
-};
 
 export default function HistoryScreen() {
   const router = useRouter();
@@ -56,7 +40,7 @@ export default function HistoryScreen() {
   const groupedExpenses = expenses
     ? Object.entries(
         expenses.reduce((groups, expense) => {
-          const title = getSectionTitle(expense.date);
+          const title = getSectionTitle(expense.updated_at);
           if (!groups[title]) {
             groups[title] = [];
           }
@@ -111,7 +95,7 @@ export default function HistoryScreen() {
   };
 
   const renderTransaction = ({ item: expense }: { item: ExpenseRead }) => {
-    const iconName = getCategoryIcon(expense.category);
+    const iconName = categoryIconNames[expense.category];
     const bgColor = categoryBackgroundColors[expense.category];
     const iconColor = categoryColors[expense.category];
     const categoryLabel = categoryLabels[expense.category];
