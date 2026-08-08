@@ -4,46 +4,34 @@ import { Feather } from '@expo/vector-icons';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { useTheme } from '@/src/contexts/ThemeContext';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '@/src/constants/theme';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
   const { colors, isDark, toggleTheme } = useTheme();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSignOut = () => {
-    const confirmSignOut = async () => {
-      try {
-        await signOut();
-      } catch (error: any) {
-        if (Platform.OS === "web") {
-          window.alert(error.message || "Failed to sign out");
-        } else {
-          Alert.alert("Error", error.message || "Failed to sign out");
-        }
-      }
-    };
+    setShowSignOutModal(true);
+  };
 
-    if (Platform.OS === "web") {
-      const confirmed = window.confirm("Are you sure you want to sign out?");
+  const confirmSignOut = async () => {
+    try {
+      setIsSigningOut(true);
 
-      if (confirmed) {
-        confirmSignOut();
-      }
+      await signOut();
 
-      return;
+      setShowSignOutModal(false);
+    } catch (error: any) {
+      Alert.alert(
+        'Error',
+        error.message || 'Failed to sign out'
+      );
+    } finally {
+      setIsSigningOut(false);
     }
-
-    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
-      {
-        text: "Cancel",
-        style: "cancel",
-      },
-      {
-        text: "Sign Out",
-        style: "destructive",
-        onPress: confirmSignOut,
-      },
-    ]);
   };
 
   const handleEditProfile = () => {
@@ -183,6 +171,19 @@ export default function ProfileScreen() {
           <Text style={styles.logoutText}>Logout</Text>
         </Pressable>
       </ScrollView>
+
+      <ConfirmModal
+        visible={showSignOutModal}
+        title="Sign Out?"
+        message="Are you sure you want to sign out?"
+        confirmText="Sign Out"
+        cancelText="Cancel"
+        icon="log-out"
+        destructive
+        loading={isSigningOut}
+        onCancel={() => setShowSignOutModal(false)}
+        onConfirm={confirmSignOut}
+      />
     </View>
   );
 }
