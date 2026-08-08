@@ -22,6 +22,7 @@ import { useLedger } from '@/src/contexts/LedgerContext';
 import {Swipeable} from "react-native-gesture-handler";
 import EditExpenseModal from '../components/EditExpenseModal';
 import ConfirmModal from '../components/ConfirmModal';
+import CreateExpenseModal from '../components/CreateExpenseModal';
 
 export default function HistoryScreen() {
   const router = useRouter();
@@ -32,6 +33,7 @@ export default function HistoryScreen() {
   const openSwipeableRef = useRef<any>(null);
   const [editingExpense, setEditingExpense] = useState<ExpenseRead | null>(null);
   const [deletingExpense, setDeletingExpense] =  useState<ExpenseRead | null>(null);
+  const [showCreateExpenseModal, setShowCreateExpenseModal] = useState(false);
   
 
   // Fetch default ledger and expenses
@@ -48,7 +50,7 @@ export default function HistoryScreen() {
   const groupedExpenses = expenses
     ? Object.entries(
         expenses.reduce((groups, expense) => {
-          const title = getSectionTitle(expense.updated_at);
+          const title = getSectionTitle(expense.date);
           if (!groups[title]) {
             groups[title] = [];
           }
@@ -317,6 +319,14 @@ export default function HistoryScreen() {
         />
       )}
 
+      {/* Create Expense FAB */}
+  <Pressable
+    style={styles.addFab}
+    onPress={() => setShowCreateExpenseModal(true)}
+  >
+    <Feather name="plus" size={28} color="#FFFFFF" />
+  </Pressable>
+
       {/* Voice FAB */}
       <Pressable style={styles.voiceFab} onPress={() => router.push('/voice-recording')}>
         <Feather name="mic" size={28} color="#FFFFFF" />
@@ -339,6 +349,13 @@ export default function HistoryScreen() {
 
           setEditingExpense(null);
         }}
+      />
+{/* Create expense Modal */}
+      <CreateExpenseModal
+        visible={showCreateExpenseModal}
+        onClose={() =>
+          setShowCreateExpenseModal(false)
+        }
       />
 
 {/* Delete Expense Confirmation */}
@@ -507,6 +524,26 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.fontSize.body,
     color: COLORS.textTertiary,
     marginTop: SPACING.xs,
+  },
+  addFab: {
+    position: "absolute",
+    bottom: 156,
+    right: SPACING.lg,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 8,
+
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
   },
   voiceFab: {
     position: 'absolute',

@@ -36,7 +36,8 @@
       "expo-secure-store",
       "expo-web-browser",
       "@pricava/react-native-google-credential/app.plugin",
-      "expo-font"
+      "expo-font",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true
