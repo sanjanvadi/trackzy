@@ -9,11 +9,13 @@ import { useExpenses, useExpenseSummary } from '@/src/hooks/useExpenses';
 import LedgerSelector from '../components/LedgerSelector';
 import { useLedger } from '@/src/contexts/LedgerContext';
 import ExpenseRow from '../components/Expense';
+import { useRef } from 'react';
 
 export default function DashboardScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { colors, isDark, toggleTheme } = useTheme();
+  const openSwipeableRef = useRef<any>(null);
 
   // Fetch default ledger
   const { selectedLedger, loading: ledgerLoading } = useLedger();
@@ -86,7 +88,7 @@ export default function DashboardScreen() {
               <>
               <Text style= {[styles.sectionTitle, { textAlign: 'center' ,fontSize: TYPOGRAPHY.fontSize.h4}]}>Recent Expenses</Text>
               {expenses.map((expense) => (
-                <ExpenseRow key={expense.id} expense={expense} currency={summary?.currency || 'USD'} />
+                <ExpenseRow key={expense.id} expense={expense} currency={summary?.currency || 'USD'} openSwipeableRef={openSwipeableRef}/>
               ))}
               </>
             ) : (

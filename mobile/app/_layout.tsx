@@ -8,6 +8,7 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { COLORS } from '@/src/constants/theme';
 import { hasCompletedOnboarding } from '@/src/services/onboarding.service';
 import { LedgerProvider } from '@/src/contexts/LedgerContext';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 function RootLayoutNav() {
   const { user, initializing } = useAuth();
@@ -72,6 +73,7 @@ function RootLayoutNav() {
 export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
+      <GestureHandlerRootView>
       <ThemeProvider>
         <AuthProvider>
           <LedgerProvider>
@@ -79,6 +81,7 @@ export default function RootLayout() {
           </LedgerProvider>
         </AuthProvider>
       </ThemeProvider>
+      </GestureHandlerRootView>
     </QueryClientProvider>
   );
 }
