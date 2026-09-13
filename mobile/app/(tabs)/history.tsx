@@ -23,6 +23,8 @@ import {Swipeable} from "react-native-gesture-handler";
 import EditExpenseModal from '../components/EditExpenseModal';
 import ConfirmModal from '../components/ConfirmModal';
 import CreateExpenseModal from '../components/CreateExpenseModal';
+import ExpenseFilterModal from "../components/ExpenseFilterModal";
+import {ExpenseFilters,defaultExpenseFilters} from "@/src/types/expenseFilters";
 
 export default function HistoryScreen() {
   const router = useRouter();
@@ -34,13 +36,41 @@ export default function HistoryScreen() {
   const [editingExpense, setEditingExpense] = useState<ExpenseRead | null>(null);
   const [deletingExpense, setDeletingExpense] =  useState<ExpenseRead | null>(null);
   const [showCreateExpenseModal, setShowCreateExpenseModal] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [filters, setFilters] =useState<ExpenseFilters>(defaultExpenseFilters);
   
-
+  const hasActiveFilters =
+    filters.startDate !== null ||
+    filters.endDate !== null ||
+    filters.category !== null ||
+    filters.sort !== "date" ||
+    filters.perPage !==
+      defaultExpenseFilters.perPage;
+      
   // Fetch default ledger and expenses
-  const { data: expenses, isLoading } = useExpenses(selectedLedger?.id || '', {
-    page: 1,
-    per_page: 100, // Fetch more transactions
-  });
+  const { data: expenses, isLoading } =
+    useExpenses(
+      selectedLedger?.id || "",
+      {
+        page: filters.page,
+        per_page: filters.perPage,
+
+        start_date:
+          filters.startDate ??
+          undefined,
+
+        end_date:
+          filters.endDate ??
+          undefined,
+
+        category:
+          filters.category ??
+          undefined,
+
+        sort_by:
+          filters.sort,
+      }
+    );
   const { data: summary } = useExpenseSummary(selectedLedger?.id || '');
 
   const deleteExpenseMutation = useDeleteExpense();
@@ -121,9 +151,9 @@ export default function HistoryScreen() {
   // };
 
   const handleFilter = () => {
-    // TODO: Open filter modal
-    Alert.alert('Filters', 'Filter functionality coming soon!');
+    setShowFilterModal(true);
   };
+
   const renderTransaction = ({ item: expense }: { item: ExpenseRead }) => {
   const iconName = categoryIconNames[expense.category];
   const bgColor = categoryBackgroundColors[expense.category];
@@ -281,9 +311,30 @@ export default function HistoryScreen() {
             onChangeText={setSearchQuery}
           />
         </View>
-        <Pressable style={styles.filterButton} onPress={handleFilter}>
-          <Feather name="sliders" size={20} color={COLORS.textPrimary} />
-        </Pressable>
+        <Pressable style={[styles.filterButton,hasActiveFilters && {backgroundColor: `${colors.primary}15`,},]}
+          onPress={handleFilter}>
+          <Feather
+            name="sliders"
+            size={20}
+            color={
+              hasActiveFilters
+                ? colors.primary
+                : colors.textPrimary
+            }
+          />
+
+          {hasActiveFilters && (
+            <View
+              style={[
+                styles.filterIndicator,
+                {
+                  backgroundColor:
+                    colors.primary,
+                },
+              ]}
+            />
+          )}
+</Pressable>
       </View>
 
       {/* Transaction List */}
@@ -372,6 +423,17 @@ export default function HistoryScreen() {
           setDeletingExpense(null)
         }
         onConfirm={confirmDelete}
+      />
+
+      <ExpenseFilterModal
+        visible={showFilterModal}
+        filters={filters}
+        onClose={() =>
+          setShowFilterModal(false)
+        }
+        onApply={(newFilters) => {
+          setFilters(newFilters);
+        }}
       />
     </View>
 
@@ -583,5 +645,13 @@ swipeActionText: {
   fontSize: TYPOGRAPHY.fontSize.caption,
   fontWeight: TYPOGRAPHY.fontWeight.semibold,
   marginTop: 4,
+},
+filterIndicator: {
+  position: "absolute",
+  right: 8,
+  top: 8,
+  width: 7,
+  height: 7,
+  borderRadius: 4,
 },
 });

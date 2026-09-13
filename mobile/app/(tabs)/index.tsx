@@ -60,7 +60,7 @@ export default function DashboardScreen() {
       >
         {/* Budget Card */}
         <View style={styles.budgetCard}>
-          <Text style={styles.budgetLabel}>{currentMonth} Expenses</Text>
+          <Text style={styles.budgetLabel}>Total Expenses</Text>
           {isLoading ? (
             <ActivityIndicator size="large" color={COLORS.primary} style={{ marginVertical: SPACING.lg }} />
           ) : (

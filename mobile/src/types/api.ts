@@ -104,6 +104,7 @@ export interface ExpenseListParams {
   start_date?: string;
   end_date?: string;
   category?: Category;
+  sort_by?: string;
 }
 
 // ============================================================================
