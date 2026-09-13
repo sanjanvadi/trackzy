@@ -9,12 +9,15 @@ import { useExpenses, useExpenseSummary } from '@/src/hooks/useExpenses';
 import LedgerSelector from '../components/LedgerSelector';
 import { useLedger } from '@/src/contexts/LedgerContext';
 import ExpenseRow from '../components/Expense';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
+import CreateExpenseModal from '../components/CreateExpenseModal';
 
 export default function DashboardScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { colors, isDark, toggleTheme } = useTheme();
+  const [showCreateExpenseModal, setShowCreateExpenseModal] = useState(false);
+  
   const openSwipeableRef = useRef<any>(null);
 
   // Fetch default ledger
@@ -44,13 +47,10 @@ export default function DashboardScreen() {
   const isLoading = ledgerLoading || expensesLoading || summaryLoading;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background , paddingTop:25}]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.surface }]}>
         <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Trackzy</Text>
-        <Pressable style={styles.themeToggle} onPress={toggleTheme}>
-          <Feather name={isDark ? 'sun' : 'moon'} size={20} color={colors.textSecondary} />
-        </Pressable>
       </View>
 
       <ScrollView
@@ -101,6 +101,21 @@ export default function DashboardScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Create expense Modal */}
+            <CreateExpenseModal
+              visible={showCreateExpenseModal}
+              onClose={() =>
+                setShowCreateExpenseModal(false)
+              }
+            />
+      {/* Create Expense FAB */}
+      <Pressable
+        style={styles.addFab}
+        onPress={() => setShowCreateExpenseModal(true)}
+      >
+        <Feather name="plus" size={28} color="#FFFFFF" />
+      </Pressable>
 
       {/* Voice FAB */}
       <Pressable style={styles.voiceFab} onPress={handleVoiceInput}>
@@ -198,6 +213,26 @@ const styles = StyleSheet.create({
   },
   transactionsList: {
     gap: SPACING.xs,
+  },
+    addFab: {
+    position: "absolute",
+    bottom: 156,
+    right: SPACING.lg,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 8,
+
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
   },
   voiceFab: {
     position: 'absolute',

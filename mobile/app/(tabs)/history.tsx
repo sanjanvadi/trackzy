@@ -263,13 +263,10 @@ export default function HistoryScreen() {
 };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background , paddingTop:25}]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.surface }]}>
         <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Trackzy</Text>
-        <Pressable style={styles.themeToggle} onPress={toggleTheme}>
-          <Feather name={isDark ? 'sun' : 'moon'} size={20} color={colors.textSecondary} />
-        </Pressable>
       </View>
 
       {/* Search Bar */}

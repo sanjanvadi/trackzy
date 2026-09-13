@@ -8,8 +8,15 @@
  * - Aug 10
  * - Dec 25, 2023
  */
+
+const parseLocalDate = (dateString: string): Date => {
+  const [year, month, day] = dateString.split('-').map(Number);
+
+  return new Date(year, month - 1, day);
+};
+
 export const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
+  const date = parseLocalDate(dateString);
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
@@ -173,7 +180,7 @@ export const getDateRangeForPeriod = (
  * Check if date is today
  */
 export const isToday = (dateString: string): boolean => {
-  const date = new Date(dateString);
+  const date = parseLocalDate(dateString);
   const today = new Date();
   return (
     date.getDate() === today.getDate() &&

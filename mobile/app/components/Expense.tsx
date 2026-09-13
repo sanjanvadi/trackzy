@@ -12,7 +12,7 @@ import {
 } from "@/src/constants/theme";
 
 import { formatCurrency } from "@/src/utils/currency";
-import { getRelativeTime } from "@/src/utils/date";
+import { getRelativeTime, getSectionTitle } from "@/src/utils/date";
 
 import {
   categoryIconNames,
@@ -159,7 +159,7 @@ export default function ExpenseRow({
             </Text>
 
             <Text style={styles.transactionDate}>
-              {getRelativeTime(expense.created_at)}
+              {getSectionTitle(expense.date)}
             </Text>
           </View>
 

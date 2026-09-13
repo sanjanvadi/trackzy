@@ -9,6 +9,7 @@ import { COLORS } from '@/src/constants/theme';
 import { hasCompletedOnboarding } from '@/src/services/onboarding.service';
 import { LedgerProvider } from '@/src/contexts/LedgerContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { StatusBar } from 'expo-status-bar';
 
 function RootLayoutNav() {
   const { user, initializing } = useAuth();
@@ -77,6 +78,7 @@ export default function RootLayout() {
       <ThemeProvider>
         <AuthProvider>
           <LedgerProvider>
+            <StatusBar style="dark" />
             <RootLayoutNav />
           </LedgerProvider>
         </AuthProvider>

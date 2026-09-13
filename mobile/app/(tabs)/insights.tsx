@@ -8,6 +8,7 @@ import { useDefaultLedger } from '@/src/hooks/useLedgers';
 import { useExpenseSummary } from '@/src/hooks/useExpenses';
 import { formatCurrency } from '@/src/utils/currency';
 import { categoryColors, categoryLabels } from '@/src/constants/categories';
+import CreateExpenseModal from '../components/CreateExpenseModal';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -15,6 +16,7 @@ export default function InsightsScreen() {
   const router = useRouter();
   const { colors, isDark, toggleTheme } = useTheme();
   const [selectedPeriod, setSelectedPeriod] = useState<'this_week' | 'this_month'>('this_month');
+  const [showCreateExpenseModal, setShowCreateExpenseModal] = useState(false);
 
   // Fetch default ledger and summary
   const { data: defaultLedger } = useDefaultLedger();
@@ -42,13 +44,10 @@ export default function InsightsScreen() {
   ];
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: colors.background , paddingTop:25}]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.surface }]}>
         <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Trackzy</Text>
-        <Pressable style={styles.themeToggle} onPress={toggleTheme}>
-          <Feather name={isDark ? 'sun' : 'moon'} size={20} color={colors.textSecondary} />
-        </Pressable>
       </View>
 
       <ScrollView
@@ -138,6 +137,21 @@ export default function InsightsScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Create expense Modal */}
+            <CreateExpenseModal
+              visible={showCreateExpenseModal}
+              onClose={() =>
+                setShowCreateExpenseModal(false)
+              }
+            />
+      {/* Create Expense FAB */}
+      <Pressable
+        style={styles.addFab}
+        onPress={() => setShowCreateExpenseModal(true)}
+      >
+        <Feather name="plus" size={28} color="#FFFFFF" />
+      </Pressable>
 
       {/* Voice FAB */}
       <Pressable style={styles.voiceFab} onPress={() => router.push('/voice-recording')}>
@@ -326,6 +340,26 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.fontSize.body,
     color: COLORS.textSecondary,
     marginTop: SPACING.md,
+  },
+    addFab: {
+    position: "absolute",
+    bottom: 156,
+    right: SPACING.lg,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.primary,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 8,
+
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
   },
   voiceFab: {
     position: 'absolute',
