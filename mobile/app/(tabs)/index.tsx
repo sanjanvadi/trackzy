@@ -88,7 +88,7 @@ export default function DashboardScreen() {
               <>
               <Text style= {[styles.sectionTitle, { textAlign: 'center' ,fontSize: TYPOGRAPHY.fontSize.h4}]}>Recent Expenses</Text>
               {expenses.map((expense) => (
-                <ExpenseRow key={expense.id} expense={expense} currency={summary?.currency || 'USD'} openSwipeableRef={openSwipeableRef}/>
+                <ExpenseRow key={expense.id} expense={expense} currency={summary?.currency || 'USD'} openSwipeableRef={openSwipeableRef} shouldGroupByDate={false} />
               ))}
               </>
             ) : (

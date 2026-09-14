@@ -18,6 +18,7 @@ import {
   categoryIconNames,
   categoryColors,
   categoryBackgroundColors,
+  categoryLabels
 } from "@/src/constants/categories";
 
 import { Category, ExpenseRead } from "@/src/types/api";
@@ -32,16 +33,22 @@ const getCategoryIcon = (category: Category): string => {
   return categoryIconNames[category] || "package";
 };
 
+const getCategoryLabel = (category: Category): string => {
+  return categoryLabels[category] || category;
+};
+
 interface ExpenseRowProps {
   expense: ExpenseRead;
   currency: string;
   openSwipeableRef: React.MutableRefObject<any>;
+  shouldGroupByDate: Boolean;
 }
 
 export default function ExpenseRow({
   expense,
   currency,
   openSwipeableRef,
+  shouldGroupByDate
 }: ExpenseRowProps) {
   const { selectedLedger } = useLedger();
 
@@ -54,6 +61,7 @@ export default function ExpenseRow({
   const updateExpenseMutation = useUpdateExpense();
 
   const iconName = getCategoryIcon(expense.category);
+  const categoryName = getCategoryLabel(expense.category);
 
   const bgColor = categoryBackgroundColors[expense.category];
 
@@ -158,9 +166,14 @@ export default function ExpenseRow({
                   expense.category.slice(1)}
             </Text>
 
-            <Text style={styles.transactionDate}>
+            
+            {shouldGroupByDate ? (
+              (<Text style={styles.transactionDate}>
+              {categoryName}
+            </Text>)
+            ):(<Text style={styles.transactionDate}>
               {getSectionTitle(expense.date)}
-            </Text>
+            </Text>)}
           </View>
 
           <Text style={[styles.transactionAmount, styles.amountNegative]}>

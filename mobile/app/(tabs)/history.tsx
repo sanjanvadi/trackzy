@@ -7,21 +7,17 @@ import {
   Pressable,
   SectionList,
   ActivityIndicator,
-  Alert,
+  FlatList,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/src/contexts/ThemeContext';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '@/src/constants/theme';
 import { useExpenses, useExpenseSummary, useDeleteExpense, useUpdateExpense } from '@/src/hooks/useExpenses';
-import { formatCurrency } from '@/src/utils/currency';
 import { getSectionTitle } from '@/src/utils/date';
-import { categoryColors, categoryBackgroundColors, categoryLabels,categoryIconNames } from '@/src/constants/categories';
 import { ExpenseRead, Category } from '@/src/types/api';
 import { useLedger } from '@/src/contexts/LedgerContext';
-import {Swipeable} from "react-native-gesture-handler";
-import EditExpenseModal from '../components/EditExpenseModal';
-import ConfirmModal from '../components/ConfirmModal';
+import ExpenseRow from '../components/Expense';
 import CreateExpenseModal from '../components/CreateExpenseModal';
 import ExpenseFilterModal from "../components/ExpenseFilterModal";
 import {ExpenseFilters,defaultExpenseFilters} from "@/src/types/expenseFilters";
@@ -30,11 +26,8 @@ export default function HistoryScreen() {
   const router = useRouter();
   const { colors, isDark, toggleTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
-  const [swipedId, setSwipedId] = useState<string | null>(null);
   const { selectedLedger } = useLedger();
   const openSwipeableRef = useRef<any>(null);
-  const [editingExpense, setEditingExpense] = useState<ExpenseRead | null>(null);
-  const [deletingExpense, setDeletingExpense] =  useState<ExpenseRead | null>(null);
   const [showCreateExpenseModal, setShowCreateExpenseModal] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [filters, setFilters] =useState<ExpenseFilters>(defaultExpenseFilters);
@@ -67,19 +60,32 @@ export default function HistoryScreen() {
           filters.category ??
           undefined,
 
-        sort_by:
+        sorting:
           filters.sort,
       }
     );
   const { data: summary } = useExpenseSummary(selectedLedger?.id || '');
 
-  const deleteExpenseMutation = useDeleteExpense();
-  const updateExpenseMutation = useUpdateExpense();
+    // Filter by search query
+  const searchedExpenses = expenses
+    ? expenses.filter((expense) => {
+    if (!searchQuery) {
+      return true;
+    }
+
+    const query = searchQuery.toLowerCase();
+
+    return (
+      expense.note?.toLowerCase().includes(query) ||
+      expense.category.toLowerCase().includes(query)
+    );
+  })
+: [];
 
   // Group expenses by date
-  const groupedExpenses = expenses
+  const groupedExpenses = filters.sort ==="date"
     ? Object.entries(
-        expenses.reduce((groups, expense) => {
+        searchedExpenses.reduce((groups, expense) => {
           const title = getSectionTitle(expense.date);
           if (!groups[title]) {
             groups[title] = [];
@@ -93,204 +99,26 @@ export default function HistoryScreen() {
       }))
     : [];
 
-  // Filter by search query
-  const filteredExpenses = searchQuery
-    ? groupedExpenses
-        .map((section) => ({
-          ...section,
-          data: section.data.filter(
-            (expense) =>
-              expense.note?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              expense.category.toLowerCase().includes(searchQuery.toLowerCase())
-          ),
-        }))
-        .filter((section) => section.data.length > 0)
-    : groupedExpenses;
-
-    const confirmDelete = async () => {
-      if (!deletingExpense || !selectedLedger) {
-        return;
-      }
-
-      try {
-        await deleteExpenseMutation.mutateAsync({
-          ledgerId: selectedLedger.id,
-          expenseId: deletingExpense.id,
-        });
-
-        setDeletingExpense(null);
-      } catch (error: any) {
-        console.error(
-          "Failed to delete expense:",
-          error
-        );
-      }
-    };
-
-  // const handleDelete = (ledgerId: string, expenseId: string, note: string) => {
-  //   Alert.alert(
-  //     'Delete Transaction',
-  //     `Are you sure you want to delete "${note || 'this transaction'}"?`,
-  //     [
-  //       { text: 'Cancel', style: 'cancel' },
-  //       {
-  //         text: 'Delete',
-  //         style: 'destructive',
-  //         onPress: async () => {
-  //           try {
-  //             await deleteExpenseMutation.mutateAsync({ ledgerId, expenseId });
-              
-  //             setSwipedId(null);
-  //           } catch (error: any) {
-  //             Alert.alert('Error', error.message || 'Failed to delete transaction');
-  //           }
-  //         },
-  //       },
-  //     ]
-  //   );
-  // };
+  const shouldGroupByDate = filters.sort === "date";
 
   const handleFilter = () => {
     setShowFilterModal(true);
   };
 
-  const renderTransaction = ({ item: expense }: { item: ExpenseRead }) => {
-  const iconName = categoryIconNames[expense.category];
-  const bgColor = categoryBackgroundColors[expense.category];
-  const iconColor = categoryColors[expense.category];
-  const categoryLabel = categoryLabels[expense.category];
-  const swipeableRef = useRef<any>(null);
-
-  const handleEdit = (expense: ExpenseRead) => {
-    // Alert.alert('Edit Transaction', 'Edit functionality coming soon!');
-    setEditingExpense(expense);
+  const renderTransaction = ({
+    item,
+  }: {
+    item: ExpenseRead;
+  }) => {
+    return (
+      <ExpenseRow
+        expense={item}
+        currency={summary?.currency || "USD"}
+        openSwipeableRef={openSwipeableRef}
+        shouldGroupByDate = {shouldGroupByDate}
+      />
+    );
   };
-
-  const handleDelete = (expense: ExpenseRead) => {
-    swipeableRef.current?.close();
-
-    if (
-      openSwipeableRef.current ===
-      swipeableRef.current
-    ) {
-      openSwipeableRef.current = null;
-    }
-
-    setDeletingExpense(expense);
-  };
-
-  const renderLeftActions = () => (
-    <Pressable
-      style={styles.editSwipeAction}
-      onPress={() => {
-        console.log("EDIT PRESS FIRED:", expense.id);
-
-        swipeableRef.current?.close();
-
-        requestAnimationFrame(() => {
-          handleEdit(expense);
-        });
-      }}
-    >
-      <Feather name="edit-2" size={22} color="#FFFFFF" />
-      <Text style={styles.swipeActionText}>Edit</Text>
-    </Pressable>
-  );
-
-  const renderRightActions = () => (
-    <Pressable
-      style={styles.deleteSwipeAction}
-      onPress={() =>{
-        console.log("DELETE PRESS FIRED:", expense.id);
-        handleDelete(expense)
-      }}
-    >
-      <Feather name="trash-2" size={22} color="#FFFFFF" />
-      <Text style={styles.swipeActionText}>Delete</Text>
-    </Pressable>
-  );
-
-  return (
-    <Swipeable
-      ref={swipeableRef}
-      renderLeftActions={renderLeftActions}
-      renderRightActions={renderRightActions}
-      overshootLeft={false}
-      overshootRight={false}
-      friction={1}
-
-      onSwipeableWillOpen={() => {
-        if (
-          openSwipeableRef.current &&
-          openSwipeableRef.current !== swipeableRef.current
-        ) {
-          openSwipeableRef.current.close();
-        }
-
-        openSwipeableRef.current = swipeableRef.current;
-      }}
-      onSwipeableClose={() => {
-        if (openSwipeableRef.current === swipeableRef.current) {
-          openSwipeableRef.current = null;
-        }
-      }}
-    >
-      <View style={styles.transactionContainer}>
-        <Pressable
-          style={[
-            styles.transactionItem,
-            { backgroundColor: colors.surface },
-          ]}
-        >
-          <View
-            style={[
-              styles.transactionIcon,
-              { backgroundColor: bgColor },
-            ]}
-          >
-            <Feather
-              name={iconName as any}
-              size={24}
-              color={iconColor}
-            />
-          </View>
-
-          <View style={styles.transactionDetails}>
-            <Text
-              style={[
-                styles.transactionName,
-                { color: colors.textPrimary },
-              ]}
-            >
-              {expense.note || categoryLabel}
-            </Text>
-
-            <Text
-              style={[
-                styles.transactionCategory,
-                { color: colors.textSecondary },
-              ]}
-            >
-              {categoryLabel}
-            </Text>
-          </View>
-
-          <Text
-            style={[
-              styles.transactionAmount,
-              { color: colors.textPrimary },
-            ]}
-          >
-            -{formatCurrency(
-              expense.amount,
-              summary?.currency || "USD"
-            )}
-          </Text>
-        </Pressable>
-      </View>
-    </Swipeable>
-  );
-};
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background , paddingTop:25}]}>
@@ -342,7 +170,7 @@ export default function HistoryScreen() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
         </View>
-      ) : filteredExpenses.length === 0 ? (
+      ) : searchedExpenses.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Feather name="inbox" size={64} color={COLORS.textTertiary} />
           <Text style={styles.emptyText}>
@@ -352,9 +180,9 @@ export default function HistoryScreen() {
             {searchQuery ? 'Try a different search term' : 'Start tracking your expenses'}
           </Text>
         </View>
-      ) : (
+      ) : shouldGroupByDate ? (
         <SectionList
-          sections={filteredExpenses}
+          sections={groupedExpenses}
           keyExtractor={(item) => item.id}
           renderItem={renderTransaction}
           renderSectionHeader={({ section: { title } }) => (
@@ -362,6 +190,14 @@ export default function HistoryScreen() {
               <Text style={styles.sectionTitle}>{title}</Text>
             </View>
           )}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        />
+      ): (
+        <FlatList
+          data={searchedExpenses}
+          keyExtractor={(item) => item.id}
+          renderItem={renderTransaction}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         />
@@ -380,49 +216,12 @@ export default function HistoryScreen() {
         <Feather name="mic" size={28} color="#FFFFFF" />
       </Pressable>
 
-{/* Edit expense Modal */}
-      <EditExpenseModal
-        visible={!!editingExpense}
-        expense={editingExpense}
-        loading={updateExpenseMutation.isPending}
-        onClose={() => setEditingExpense(null)}
-        onSave={async (expenseId, data) => {
-          if (!selectedLedger) return;
-
-          await updateExpenseMutation.mutateAsync({
-            ledgerId: selectedLedger.id,
-            expenseId,
-            data,
-          });
-
-          setEditingExpense(null);
-        }}
-      />
 {/* Create expense Modal */}
       <CreateExpenseModal
         visible={showCreateExpenseModal}
         onClose={() =>
           setShowCreateExpenseModal(false)
         }
-      />
-
-{/* Delete Expense Confirmation */}
-      <ConfirmModal
-        visible={!!deletingExpense}
-        title="Delete Transaction?"
-        message={`Are you sure you want to delete "${
-          deletingExpense?.note ||
-          "this transaction"
-        }"?`}
-        confirmText="Delete"
-        cancelText="Cancel"
-        icon="trash-2"
-        destructive
-        loading={deleteExpenseMutation.isPending}
-        onCancel={() =>
-          setDeletingExpense(null)
-        }
-        onConfirm={confirmDelete}
       />
 
       <ExpenseFilterModal

@@ -47,17 +47,17 @@ const sortOptions: {
     icon: "calendar",
   },
   {
-    value: "updated_date",
+    value: "updatedDate",
     label: "Recently Updated",
     icon: "clock",
   },
   {
-    value: "amount_desc",
+    value: "amountDesc",
     label: "Amount: High to Low",
     icon: "arrow-down",
   },
   {
-    value: "amount_asc",
+    value: "amountInc",
     label: "Amount: Low to High",
     icon: "arrow-up",
   },

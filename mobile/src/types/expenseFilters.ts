@@ -2,9 +2,9 @@ import { Category } from "@/src/types/api";
 
 export type ExpenseSort =
   | "date"
-  | "updated_date"
-  | "amount_desc"
-  | "amount_asc";
+  | "updatedDate"
+  | "amountDesc"
+  | "amountInc";
 
 export interface ExpenseFilters {
   page: number;

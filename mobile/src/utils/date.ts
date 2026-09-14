@@ -93,7 +93,7 @@ export const formatTime = (dateString: string): string => {
  * - "AUG 10"
  */
 export const getSectionTitle = (dateString: string): string => {
-  return formatDate(dateString).toUpperCase();
+  return formatDate(dateString);
 };
 
 /**
