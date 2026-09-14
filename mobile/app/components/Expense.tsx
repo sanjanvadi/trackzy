@@ -167,13 +167,11 @@ export default function ExpenseRow({
             </Text>
 
             
-            {shouldGroupByDate ? (
-              (<Text style={styles.transactionDate}>
-              {categoryName}
-            </Text>)
-            ):(<Text style={styles.transactionDate}>
-              {getSectionTitle(expense.date)}
-            </Text>)}
+            <Text style={styles.transactionDate}>
+              {shouldGroupByDate
+                ? categoryName
+                : getSectionTitle(expense.date)}
+            </Text>
           </View>
 
           <Text style={[styles.transactionAmount, styles.amountNegative]}>

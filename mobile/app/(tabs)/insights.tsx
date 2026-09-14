@@ -1,380 +1,489 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Dimensions, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
-import { useTheme } from '@/src/contexts/ThemeContext';
-import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, SHADOWS } from '@/src/constants/theme';
-import { useDefaultLedger } from '@/src/hooks/useLedgers';
-import { useExpenseSummary } from '@/src/hooks/useExpenses';
-import { formatCurrency } from '@/src/utils/currency';
-import { categoryColors, categoryLabels } from '@/src/constants/categories';
-import CreateExpenseModal from '../components/CreateExpenseModal';
+import { useState } from "react";
 
-const screenWidth = Dimensions.get('window').width;
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
+
+import {
+  SafeAreaView,
+} from "react-native-safe-area-context";
+
+import { Feather } from "@expo/vector-icons";
+
+import { useRouter } from "expo-router";
+
+import { useTheme } from "@/src/contexts/ThemeContext";
+
+import { useLedger } from "@/src/contexts/LedgerContext";
+
+import { useInsights } from "@/src/hooks/useInsights";
+
+import {
+  COLORS,
+  TYPOGRAPHY,
+  SPACING,
+} from "@/src/constants/theme";
+
+import MonthlyOverviewCard from "../components/insights/MonthlyOverviewCard";
+
+import InsightMetricCard from "../components/insights/InsightMetricCard"; 
+
+import CategoryBreakdownCard from "../components/insights/CategoryBreakdownCard"; 
+
+import HighlightsCard from "../components/insights/HighlightsCard";
+
+import SpendingPaceCard from "../components/insights/SpendingPaceCard";
+
+import CreateExpenseModal from "../components/CreateExpenseModal";
 
 export default function InsightsScreen() {
-  const router = useRouter();
-  const { colors, isDark, toggleTheme } = useTheme();
-  const [selectedPeriod, setSelectedPeriod] = useState<'this_week' | 'this_month'>('this_month');
-  const [showCreateExpenseModal, setShowCreateExpenseModal] = useState(false);
+  const router =
+    useRouter();
 
-  // Fetch default ledger and summary
-  const { data: defaultLedger } = useDefaultLedger();
-  const { data: summary, isLoading } = useExpenseSummary(defaultLedger?.id || '', {
-    period: selectedPeriod,
-  });
+  const { colors } =
+    useTheme();
 
-  // Prepare chart data
-  const categoryData = summary?.breakdown?.map((item) => ({
-    x: categoryLabels[item.category as keyof typeof categoryLabels],
-    y: item.total,
-    color: categoryColors[item.category as keyof typeof categoryColors],
-    percentage: summary.total > 0 ? ((item.total / summary.total) * 100).toFixed(0) : '0',
-  })) || [];
+  const { selectedLedger } =
+    useLedger();
 
-  // Mock weekly data (TODO: Get from backend when available)
-  const weeklyData = [
-    { day: 'M', amount: 45 },
-    { day: 'T', amount: 120 },
-    { day: 'W', amount: 65 },
-    { day: 'T', amount: 90 },
-    { day: 'F', amount: 150 },
-    { day: 'S', amount: 30 },
-    { day: 'S', amount: 80 },
-  ];
+  const [
+    showCreateExpenseModal,
+    setShowCreateExpenseModal,
+  ] = useState(false);
+
+  const insights =
+    useInsights(
+      selectedLedger?.id || ""
+    );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background , paddingTop:25}]}>
+    <SafeAreaView
+      style={[
+        styles.container,
+        {
+          backgroundColor:
+            colors.background,
+        },
+      ]}
+      edges={["top"]}
+    >
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.surface }]}>
-        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Trackzy</Text>
+
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor:
+              colors.surface,
+          },
+        ]}
+      >
+        <Text
+          style={[
+            styles.headerTitle,
+            {
+              color:
+                colors.textPrimary,
+            },
+          ]}
+        >
+          Trackzy
+        </Text>
       </View>
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Financial Overview */}
-        <View style={styles.overviewSection}>
-          <Text style={styles.pageTitle}>Financial Overview</Text>
-          <Text style={styles.pageSubtitle}>
-            Here is a breakdown of your recent activity.
+      {insights.isLoading ? (
+        <View
+          style={
+            styles.loadingContainer
+          }
+        >
+          <ActivityIndicator
+            size="large"
+            color={
+              colors.primary
+            }
+          />
+
+          <Text
+            style={[
+              styles.loadingText,
+              {
+                color:
+                  colors.textSecondary,
+              },
+            ]}
+          >
+            Calculating insights...
           </Text>
         </View>
+      ) : (
+        <ScrollView
+          style={
+            styles.scrollView
+          }
+          contentContainerStyle={
+            styles.scrollContent
+          }
+          showsVerticalScrollIndicator={
+            false
+          }
+        >
+          {/* Page intro */}
 
-        {/* Spending by Category */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Spending by Category</Text>
-            <Pressable style={styles.moreButton}>
-              <Feather name="more-horizontal" size={20} color={COLORS.textSecondary} />
-            </Pressable>
+          <View
+            style={
+              styles.intro
+            }
+          >
+            <Text
+              style={[
+                styles.pageTitle,
+                {
+                  color:
+                    colors.textPrimary,
+                },
+              ]}
+            >
+              Financial Overview
+            </Text>
+
+            <Text
+              style={[
+                styles.pageSubtitle,
+                {
+                  color:
+                    colors.textSecondary,
+                },
+              ]}
+            >
+              Understand where
+              your money is going
+              and how your
+              spending is
+              changing.
+            </Text>
           </View>
 
-          {isLoading ? (
-            <ActivityIndicator size="large" color={COLORS.primary} style={{ marginVertical: SPACING.xxl }} />
-          ) : categoryData.length > 0 ? (
-            <>
-              {/* Total */}
-              <View style={styles.totalContainer}>
-                <Text style={styles.totalLabel}>TOTAL SPENDING</Text>
-                <Text style={styles.totalAmount}>
-                  {formatCurrency(summary?.total || 0, summary?.currency || 'USD')}
-                </Text>
-              </View>
+          {/* Monthly Summary */}
 
-              {/* Category List */}
-              <View style={styles.categoryList}>
-                {categoryData.map((item, index) => (
-                  <View key={index} style={styles.categoryItem}>
-                    <View style={styles.categoryLeft}>
-                      <View style={[styles.categoryDot, { backgroundColor: item.color }]} />
-                      <Text style={styles.categoryLabel}>{item.x}</Text>
-                    </View>
-                    <View style={styles.categoryRight}>
-                      <Text style={styles.categoryAmount}>
-                        {formatCurrency(item.y, summary?.currency || 'USD')}
-                      </Text>
-                      <Text style={styles.categoryPercentage}>{item.percentage}%</Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            </>
-          ) : (
-            <View style={styles.emptyChart}>
-              <Feather name="pie-chart" size={48} color={COLORS.textTertiary} />
-              <Text style={styles.emptyText}>No spending data</Text>
-            </View>
-          )}
-        </View>
+          <MonthlyOverviewCard
+            currentMonthName={
+              insights.currentMonthName
+            }
+            previousMonthName={
+              insights.previousMonthName
+            }
+            currentTotal={
+              insights.currentTotal
+            }
+            previousTotal={
+              insights.previousTotal
+            }
+            changePercent={
+              insights.monthChangePercent
+            }
+            currency={
+              insights.currency
+            }
+          />
 
-        {/* Weekly Spending */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Weekly Spending</Text>
-            <View style={styles.periodChip}>
-              <Text style={styles.periodChipText}>Last 7 Days</Text>
-            </View>
-          </View>
+          {/* Metrics */}
 
-          <View style={styles.weeklyList}>
-            {weeklyData.map((day, index) => (
-              <View key={index} style={styles.weeklyItem}>
-                <Text style={styles.weeklyDay}>{day.day}</Text>
-                <View style={styles.weeklyBarContainer}>
-                  <View
-                    style={[
-                      styles.weeklyBar,
-                      { height: `${(day.amount / 150) * 100}%` }
-                    ]}
-                  />
-                </View>
-                <Text style={styles.weeklyAmount}>${day.amount}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      </ScrollView>
-
-      {/* Create expense Modal */}
-            <CreateExpenseModal
-              visible={showCreateExpenseModal}
-              onClose={() =>
-                setShowCreateExpenseModal(false)
+          <View
+            style={
+              styles.metricRow
+            }
+          >
+            <InsightMetricCard
+              icon="calendar"
+              label="Daily Avg"
+              value={
+                insights.averageDailySpend
               }
+              currency={
+                insights.currency
+              }
+              subtitle="per day"
             />
-      {/* Create Expense FAB */}
+
+            <InsightMetricCard
+              icon="trending-up"
+              label="Projected"
+              value={
+                insights.projectedMonthSpend
+              }
+              currency={
+                insights.currency
+              }
+              subtitle="month-end"
+            />
+          </View>
+
+          {/* Category Insights */}
+
+          <CategoryBreakdownCard
+            categories={
+              insights.categoryData
+            }
+            currency={
+              insights.currency
+            }
+            previousMonthName={
+              insights.previousMonthName
+            }
+          />
+
+          {/* Highlights */}
+
+          <HighlightsCard
+            topCategory={
+              insights.topCategory
+            }
+            largestExpense={
+              insights.largestExpense
+            }
+            highestSpendingDay={
+              insights.highestSpendingDay
+            }
+            currency={
+              insights.currency
+            }
+          />
+
+          {/* Spending Pace */}
+
+          <SpendingPaceCard
+            projectedSpend={
+              insights.projectedMonthSpend
+            }
+            monthName={
+              insights.currentMonthName
+            }
+            currency={
+              insights.currency
+            }
+          />
+        </ScrollView>
+      )}
+
+      {/* Create Expense */}
+
+      <CreateExpenseModal
+        visible={
+          showCreateExpenseModal
+        }
+        onClose={() =>
+          setShowCreateExpenseModal(
+            false
+          )
+        }
+      />
+
+      {/* Add Expense FAB */}
+
       <Pressable
-        style={styles.addFab}
-        onPress={() => setShowCreateExpenseModal(true)}
+        style={[
+          styles.addFab,
+          {
+            backgroundColor:
+              colors.primary,
+          },
+        ]}
+        onPress={() =>
+          setShowCreateExpenseModal(
+            true
+          )
+        }
       >
-        <Feather name="plus" size={28} color="#FFFFFF" />
+        <Feather
+          name="plus"
+          size={28}
+          color="#FFFFFF"
+        />
       </Pressable>
 
       {/* Voice FAB */}
-      <Pressable style={styles.voiceFab} onPress={() => router.push('/voice-recording')}>
-        <Feather name="mic" size={28} color="#FFFFFF" />
+
+      <Pressable
+        style={[
+          styles.voiceFab,
+          {
+            backgroundColor:
+              colors.primary,
+          },
+        ]}
+        onPress={() =>
+          router.push(
+            "/voice-recording"
+          )
+        }
+      >
+        <Feather
+          name="mic"
+          size={28}
+          color="#FFFFFF"
+        />
       </Pressable>
-    </View>
+    </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.xl,
-    paddingBottom: SPACING.md,
-    backgroundColor: '#FFFFFF',
-  },
-  headerTitle: {
-    fontSize: TYPOGRAPHY.fontSize.h2,
-    fontWeight: TYPOGRAPHY.fontWeight.bold,
-    color: COLORS.textPrimary,
-    flex: 1,
-    textAlign: 'center',
-  },
-  themeToggle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: SPACING.lg,
-    paddingBottom: 100,
-  },
-  overviewSection: {
-    marginBottom: SPACING.xl,
-  },
-  pageTitle: {
-    fontSize: TYPOGRAPHY.fontSize.h1,
-    fontWeight: TYPOGRAPHY.fontWeight.bold,
-    color: COLORS.textPrimary,
-    marginBottom: SPACING.xs,
-  },
-  pageSubtitle: {
-    fontSize: TYPOGRAPHY.fontSize.body,
-    color: COLORS.textSecondary,
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: BORDER_RADIUS.xl,
-    padding: SPACING.lg,
-    marginBottom: SPACING.lg,
-    ...SHADOWS.sm,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: SPACING.lg,
-  },
-  cardTitle: {
-    fontSize: TYPOGRAPHY.fontSize.h3,
-    fontWeight: TYPOGRAPHY.fontWeight.bold,
-    color: COLORS.textPrimary,
-  },
-  moreButton: {
-    padding: SPACING.xs,
-  },
-  periodChip: {
-    backgroundColor: '#E3F2FD',
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs,
-    borderRadius: BORDER_RADIUS.full,
-  },
-  periodChipText: {
-    fontSize: TYPOGRAPHY.fontSize.caption,
-    fontWeight: TYPOGRAPHY.fontWeight.medium,
-    color: COLORS.primary,
-  },
-  totalContainer: {
-    alignItems: 'center',
-    paddingVertical: SPACING.xl,
-    marginBottom: SPACING.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  totalLabel: {
-    fontSize: TYPOGRAPHY.fontSize.caption,
-    color: COLORS.textSecondary,
-    letterSpacing: 1,
-    marginBottom: SPACING.xs,
-  },
-  totalAmount: {
-    fontSize: 36,
-    fontWeight: TYPOGRAPHY.fontWeight.bold,
-    color: COLORS.textPrimary,
-  },
-  categoryList: {
-    gap: SPACING.sm,
-  },
-  categoryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: SPACING.md,
-  },
-  categoryLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    flex: 1,
-  },
-  categoryDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-  },
-  categoryLabel: {
-    fontSize: TYPOGRAPHY.fontSize.body,
-    fontWeight: TYPOGRAPHY.fontWeight.medium,
-    color: COLORS.textPrimary,
-  },
-  categoryRight: {
-    alignItems: 'flex-end',
-  },
-  categoryAmount: {
-    fontSize: TYPOGRAPHY.fontSize.body,
-    fontWeight: TYPOGRAPHY.fontWeight.semibold,
-    color: COLORS.textPrimary,
-    marginBottom: 2,
-  },
-  categoryPercentage: {
-    fontSize: TYPOGRAPHY.fontSize.caption,
-    color: COLORS.textSecondary,
-  },
-  weeklyList: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'flex-end',
-    height: 200,
-    paddingVertical: SPACING.lg,
-  },
-  weeklyItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  weeklyDay: {
-    fontSize: TYPOGRAPHY.fontSize.caption,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.xs,
-  },
-  weeklyBarContainer: {
-    width: 24,
-    height: 120,
-    backgroundColor: '#F0F0F0',
-    borderRadius: BORDER_RADIUS.sm,
-    justifyContent: 'flex-end',
-    overflow: 'hidden',
-    marginBottom: SPACING.xs,
-  },
-  weeklyBar: {
-    width: '100%',
-    backgroundColor: COLORS.primary,
-    borderRadius: BORDER_RADIUS.sm,
-  },
-  weeklyAmount: {
-    fontSize: TYPOGRAPHY.fontSize.caption,
-    fontWeight: TYPOGRAPHY.fontWeight.medium,
-    color: COLORS.textPrimary,
-  },
-  emptyChart: {
-    alignItems: 'center',
-    paddingVertical: SPACING.xxl,
-  },
-  emptyText: {
-    fontSize: TYPOGRAPHY.fontSize.body,
-    color: COLORS.textSecondary,
-    marginTop: SPACING.md,
-  },
-    addFab: {
-    position: "absolute",
-    bottom: 156,
-    right: SPACING.lg,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: COLORS.primary,
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 8,
+const styles =
+  StyleSheet.create({
+    container: {
+      flex: 1,
 
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
+      backgroundColor:
+        COLORS.background,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-  },
-  voiceFab: {
-    position: 'absolute',
-    bottom: 80,
-    right: SPACING.lg,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-});
+
+    header: {
+      flexDirection: "row",
+
+      alignItems: "center",
+
+      paddingHorizontal:
+        SPACING.lg,
+
+      paddingVertical:
+        SPACING.md,
+    },
+
+    headerTitle: {
+      flex: 1,
+
+      textAlign: "center",
+
+      fontSize:
+        TYPOGRAPHY.fontSize.h2,
+
+      fontWeight:
+        TYPOGRAPHY.fontWeight
+          .bold,
+    },
+
+    scrollView: {
+      flex: 1,
+    },
+
+    scrollContent: {
+      padding:
+        SPACING.lg,
+
+      paddingBottom: 130,
+    },
+
+    intro: {
+      marginBottom:
+        SPACING.xl,
+    },
+
+    pageTitle: {
+      fontSize:
+        TYPOGRAPHY.fontSize.h1,
+
+      fontWeight:
+        TYPOGRAPHY.fontWeight
+          .bold,
+
+      marginBottom:
+        SPACING.xs,
+    },
+
+    pageSubtitle: {
+      fontSize:
+        TYPOGRAPHY.fontSize.body,
+
+      lineHeight: 22,
+    },
+
+    metricRow: {
+      flexDirection: "row",
+
+      gap: SPACING.md,
+
+      marginBottom:
+        SPACING.lg,
+    },
+
+    loadingContainer: {
+      flex: 1,
+
+      alignItems: "center",
+
+      justifyContent:
+        "center",
+
+      gap: SPACING.md,
+    },
+
+    loadingText: {
+      fontSize:
+        TYPOGRAPHY.fontSize.body,
+    },
+
+    addFab: {
+      position: "absolute",
+
+      bottom: 156,
+      right: SPACING.lg,
+
+      width: 64,
+      height: 64,
+
+      borderRadius: 32,
+
+      justifyContent:
+        "center",
+
+      alignItems: "center",
+
+      elevation: 8,
+
+      shadowColor: "#000",
+
+      shadowOffset: {
+        width: 0,
+        height: 4,
+      },
+
+      shadowOpacity: 0.25,
+
+      shadowRadius: 8,
+    },
+
+    voiceFab: {
+      position: "absolute",
+
+      bottom: 80,
+      right: SPACING.lg,
+
+      width: 64,
+      height: 64,
+
+      borderRadius: 32,
+
+      justifyContent:
+        "center",
+
+      alignItems: "center",
+
+      elevation: 8,
+
+      shadowColor: "#000",
+
+      shadowOffset: {
+        width: 0,
+        height: 4,
+      },
+
+      shadowOpacity: 0.3,
+
+      shadowRadius: 8,
+    },
+  });
