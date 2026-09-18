@@ -1,8 +1,8 @@
 // src/services/userSync.service.ts
 
 import apiClient, { endpoints } from "@/src/config/api";
-import { User, deleteUser } from "firebase/auth";
-import { UserCreate, UserRead } from "@/src/types/api";
+import { User, deleteUser, updateProfile } from "firebase/auth";
+import { UserCreate, UserRead, UserUpdate } from "@/src/types/api";
 
 export const syncUserWithBackend = async (user: User): Promise<UserRead> => {
   try {
@@ -21,6 +21,49 @@ export const syncUserWithBackend = async (user: User): Promise<UserRead> => {
     return response.data;
   } catch (error:any) {
     console.error("Error syncing user with backend:", error);
+    throw error;
+  }
+};
+
+export const getUser = async (user: User): Promise<UserRead> => {
+  try {
+    const response = await apiClient.get<UserRead>(endpoints.users.me);
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to fetch user:", error);
+    throw error;
+  }
+};
+
+export const updateUser = async (
+  user: User,
+  data: UserUpdate
+): Promise<UserRead> => {
+  try {
+    // Update backend user
+    const response =
+      await apiClient.patch<UserRead>(
+        endpoints.users.update,
+        data
+      );
+
+    // Keep Firebase displayName in sync
+    if (
+      data.name !== undefined &&
+      data.name !== user.displayName
+    ) {
+      await updateProfile(user, {
+        displayName: data.name,
+      });
+    }
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "Failed to update user:",
+      error
+    );
+
     throw error;
   }
 };
