@@ -200,6 +200,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: SPACING.md,
+
+    position: 'relative',
+    zIndex: 100,
+    elevation: 100,
   },
   sectionTitle: {
     fontSize: TYPOGRAPHY.fontSize.h3,
@@ -213,6 +217,9 @@ const styles = StyleSheet.create({
   },
   transactionsList: {
     gap: SPACING.xs,
+
+    position: 'relative',
+    // zIndex: 1,
   },
     addFab: {
     position: "absolute",
