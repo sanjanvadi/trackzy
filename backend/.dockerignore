@@ -1,0 +1,47 @@
+# Virtual environments
+.venv
+venv
+env
+
+# Python cache
+__pycache__
+*.py[cod]
+*$py.class
+
+# Environment/secrets
+.env
+.env.*
+!.env.example
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+
+# macOS
+.DS_Store
+
+# Testing/cache
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov
+
+# Build artifacts
+build
+dist
+*.egg-info
+
+# Logs
+*.log
+
+# Docker
+Dockerfile*
+docker-compose*
+
+serviceAccount.json
+*.serviceAccount.json
