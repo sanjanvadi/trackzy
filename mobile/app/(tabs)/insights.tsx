@@ -13,7 +13,7 @@ import {
   SafeAreaView,
 } from "react-native-safe-area-context";
 
-import { Feather } from "@expo/vector-icons";
+import Feather from "@expo/vector-icons/Feather";
 
 import { useRouter } from "expo-router";
 

@@ -13,7 +13,7 @@ import {
 } from "react-native";
 
 import { useRouter } from "expo-router";
-import { Feather } from "@expo/vector-icons";
+import Feather from "@expo/vector-icons/Feather";
 
 import {
   COLORS,

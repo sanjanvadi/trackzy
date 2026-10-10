@@ -37,7 +37,18 @@
       "expo-web-browser",
       "@pricava/react-native-google-credential/app.plugin",
       "expo-font",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "enableBundleCompression": false
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

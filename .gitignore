@@ -28,3 +28,5 @@ audio
 audioTest
 index.txt
 indexTest.txt
+# Local Netlify folder
+.netlify

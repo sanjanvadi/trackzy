@@ -19,7 +19,7 @@ import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
 
-import { Feather } from "@expo/vector-icons";
+import Feather from "@expo/vector-icons/Feather";
 
 import { useTheme } from "@/src/contexts/ThemeContext";
 import { useLedger } from "@/src/contexts/LedgerContext";

@@ -55,6 +55,9 @@ async def parse_voice(
 
     # ── 2. Transcribe audio via Groq Whisper ──────────────────────────────────
     transcript = await transcribe_audio(audio)
+    print("AUDIO filename:", audio.filename, flush=True)
+    print("AUDIO content_type:", audio.content_type, flush=True)
+    print("VOICE TRANSCRIPT:", repr(transcript), flush=True)
     transcript = transcript[:500]
 
     if not transcript:

@@ -10,6 +10,9 @@ import { hasCompletedOnboarding } from '@/src/services/onboarding.service';
 import { LedgerProvider } from '@/src/contexts/LedgerContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
+import { useFonts } from 'expo-font';
+import Feather from '@expo/vector-icons/Feather';
+
 
 function RootLayoutNav() {
   const { user, initializing } = useAuth();
@@ -72,6 +75,11 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts('../assets/fonts/Feather.ttf');
+
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
   return (
     <QueryClientProvider client={queryClient}>
       <GestureHandlerRootView>

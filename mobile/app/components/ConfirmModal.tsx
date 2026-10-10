@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 
-import { Feather } from "@expo/vector-icons";
+import Feather from "@expo/vector-icons/Feather";
 
 import { useTheme } from "@/src/contexts/ThemeContext";
 import { TYPOGRAPHY, SPACING, BORDER_RADIUS } from "@/src/constants/theme";

@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { View, Text, StyleSheet, Pressable, Alert } from "react-native";
 
-import { Feather } from "@expo/vector-icons";
+import Feather from "@expo/vector-icons/Feather";
 import { Swipeable } from "react-native-gesture-handler";
 
 import {

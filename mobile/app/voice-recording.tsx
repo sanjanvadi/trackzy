@@ -11,7 +11,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
 import { Audio } from 'expo-av';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '@/src/contexts/ThemeContext';
