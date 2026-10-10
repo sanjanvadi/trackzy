@@ -2,6 +2,12 @@
 
 Trackzy is a cross-platform expense tracking app that helps users manage spending across multiple ledgers and add expenses through both manual entry and voice commands.
 
+## Android App
+[Trackzy App](https://expo.dev/accounts/sanjanv/projects/trackzy/builds/1108224d-ab56-40ae-816f-5b205bdfabc5)
+
+## Web Browser
+https://trackzy.sanjanvadi.com/
+
 ## Overview
 
 This repository contains:
